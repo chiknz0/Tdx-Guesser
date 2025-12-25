@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -136,14 +135,14 @@
 </head>
 <body onclick="startAudio()">
 
-    <!-- Audio Settings (Top Left) -->
+    <!-- Audio Settings -->
     <div class="fixed top-4 left-4 z-50">
         <button onclick="toggleMusic()" class="glass-box !p-0 !w-12 !h-12 flex items-center justify-center !rounded-xl hover:bg-gray-700 transition">
             <span id="musicIcon" class="text-xl">🔇</span>
         </button>
     </div>
 
-    <!-- Absolute Positioning for Stats to the far right -->
+    <!-- Stats -->
     <div class="fixed top-4 right-4 flex flex-col gap-2 z-50">
         <button class="glass-box !p-0 !w-12 !h-12 flex items-center justify-center !rounded-xl hover:bg-gray-700 transition">
             <span class="text-2xl">🏆</span>
@@ -155,15 +154,12 @@
     </div>
 
     <div class="game-wrapper">
-        <!-- Header Section -->
         <div class="flex flex-col items-center mb-2">
-            <!-- Main Logo -->
             <img src="https://interim-gray-w1wqf9wixn-pkbmm7c9jv.edgeone.dev/unnamed.png" 
                  alt="TDX-DLE Logo" 
                  class="w-full max-h-32 object-contain">
         </div>
 
-        <!-- Mode Navigation -->
         <div class="glass-box">
             <div class="grid grid-cols-4 gap-2">
                 <button onclick="changeMode('classic')" id="mode-classic" class="mode-btn active flex flex-col items-center">
@@ -195,11 +191,9 @@
             </div>
         </div>
 
-        <!-- Gameplay Display -->
         <div class="glass-box flex flex-col items-center">
             <div id="displayArea" class="w-full min-h-[160px] flex flex-col items-center justify-center">
                 
-                <!-- Pixel Mode -->
                 <div id="pixelDisplay" class="hidden text-center">
                     <div class="pixel-container mx-auto">
                         <canvas id="pixelCanvas" width="120" height="120"></canvas>
@@ -213,24 +207,20 @@
                     </div>
                 </div>
 
-                <!-- Emoji Mode -->
                 <div id="emojiDisplay" class="hidden text-center">
                     <div id="emojiSlots" class="flex gap-1 text-2xl bg-black/40 p-3 rounded-xl border border-gray-700"></div>
                 </div>
 
-                <!-- Description Mode -->
                 <div id="descriptionDisplay" class="hidden text-center p-3 bg-black/30 rounded-xl w-full border border-gray-700 min-h-[60px] flex items-center justify-center">
                     <p id="descText" class="text-xs leading-relaxed italic text-yellow-50 font-medium"></p>
                 </div>
 
-                <!-- Classic Welcome -->
                 <div id="classicDisplay" class="text-center">
                     <h3 class="text-lg mb-1 text-yellow-400 uppercase">Tower Guess</h3>
                     <p class="text-gray-400 text-[10px]">Compare stats to find the target!</p>
                 </div>
             </div>
 
-            <!-- Interaction -->
             <div id="interactionSection" class="w-full relative mt-4">
                 <input type="text" id="guessInput" placeholder="Enter tower name..." autocomplete="off"
                        class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-base focus:border-yellow-500 outline-none transition-all placeholder:text-gray-600 text-white">
@@ -248,7 +238,6 @@
             <div id="guessHistory" class="w-full mt-4 space-y-1"></div>
         </div>
 
-        <!-- Social & Support Footer -->
         <div class="flex gap-2 w-full">
             <a href="https://discord.gg/r7JXFmk8Ku" target="_blank" class="social-link glass-box flex-1 !flex items-center justify-center gap-2 !py-2 hover:bg-indigo-900/40 border-indigo-500/30">
                 <img src="https://img.icons8.com/ios-filled/50/FFFFFF/discord-logo.png" class="w-4 h-4">
@@ -327,7 +316,18 @@
             { name: "Shock Trooper", range: "Long", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/6d/ShockTrooper0.png", desc: "Shocks crowds of enemies", emojis: ["⚡", "☁️", "🪖", "💥"] }
         ];
 
-        // State & Audio
+        // System Proxy for Images
+        function getSafeImageUrl(originalUrl) {
+            if (!originalUrl) return "https://img.icons8.com/color/96/question-mark.png";
+            // Check if wikia - wikia has strict hotlink rules
+            if (originalUrl.includes('wikia.nocookie.net')) {
+                // Remove revision hash if present and use a public proxy
+                const cleanUrl = originalUrl.split('/revision')[0];
+                return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
+            }
+            return originalUrl;
+        }
+
         let currentMode = 'classic';
         let targetTower = null;
         let guesses = [];
@@ -337,8 +337,7 @@
         let dailyProgress = { classic: false, pixel: false, emoji: false, description: false };
         let imgObj = new Image();
 
-        // Audio Objects
-        const bgMusic = new Audio('https://www.mboxdrive.com/TDX_Theme.mp3'); // Example TDX Theme link
+        const bgMusic = new Audio('https://www.mboxdrive.com/TDX_Theme.mp3'); 
         bgMusic.loop = true;
         bgMusic.volume = 0.3;
         const clickSound = new Audio('https://www.soundjay.com/buttons/button-16.mp3');
@@ -349,11 +348,8 @@
 
         function startAudio() {
             if (!audioStarted) {
-                // Browsers require interaction before playing audio
                 audioStarted = true;
-                if (!isMuted) {
-                    bgMusic.play().catch(e => console.log("Music blocked"));
-                }
+                if (!isMuted) bgMusic.play().catch(() => {});
             }
         }
 
@@ -364,7 +360,7 @@
                 bgMusic.pause();
                 icon.innerText = "🔇";
             } else {
-                bgMusic.play().catch(e => console.log("Music blocked"));
+                bgMusic.play().catch(() => {});
                 icon.innerText = "🔊";
             }
             playClick();
@@ -381,9 +377,7 @@
             updateProgressBar();
             
             const input = document.getElementById('guessInput');
-            input.addEventListener('input', (e) => {
-                showSuggestions(e);
-            });
+            input.addEventListener('input', showSuggestions);
             input.addEventListener('keypress', (e) => { 
                 if(e.key === 'Enter') handleGuess(input.value); 
             });
@@ -437,10 +431,13 @@
 
                 imgObj = new Image();
                 imgObj.crossOrigin = "anonymous";
-                imgObj.src = targetTower.img;
-                imgObj.onload = () => {
-                    setTimeout(updateDisplay, 100); 
+                // System proxy usage here
+                imgObj.src = getSafeImageUrl(targetTower.img);
+                imgObj.onerror = () => {
+                    // Failback for proxy
+                    imgObj.src = "https://img.icons8.com/color/96/question-mark.png";
                 };
+                imgObj.onload = () => setTimeout(updateDisplay, 100);
             } else {
                 updateDisplay();
             }
@@ -463,8 +460,8 @@
                     tempCtx.filter = 'grayscale(100%) contrast(150%)';
                 }
                 
-                const w = imgObj.width;
-                const h = imgObj.height;
+                const w = imgObj.width || 120;
+                const h = imgObj.height || 120;
                 const sampleW = w * 0.7;
                 const sampleH = h * 0.7;
                 const sx = (w - sampleW) / 2;
@@ -527,7 +524,8 @@
             } else {
                 const isCorrect = guess.name === targetTower.name;
                 row.className = `flex items-center gap-2 glass-box !p-2 ${isCorrect ? 'correct' : 'incorrect'} border-2 animate-reveal`;
-                row.innerHTML = `<img src="${guess.img}" class="w-8 h-8 rounded shadow"> <span class="text-sm font-bold">${guess.name}</span>`;
+                // Use proxy for history images too
+                row.innerHTML = `<img src="${getSafeImageUrl(guess.img)}" class="w-8 h-8 rounded shadow" onerror="this.src='https://img.icons8.com/color/48/question-mark.png'"> <span class="text-sm font-bold">${guess.name}</span>`;
                 container.prepend(row);
             }
         }
@@ -577,7 +575,7 @@
             if(matches.length > 0) {
                 suggCont.innerHTML = matches.map(m => `
                     <div class="suggestion-item p-2 cursor-pointer flex items-center gap-2 transition-colors border-b border-gray-800 last:border-0" onclick="handleGuess('${m.name}')">
-                        <img src="${m.img}" class="w-7 h-7 rounded bg-black/40">
+                        <img src="${getSafeImageUrl(m.img)}" class="w-7 h-7 rounded bg-black/40" onerror="this.src='https://img.icons8.com/color/48/question-mark.png'">
                         <span class="text-[11px] font-bold uppercase">${m.name}</span>
                     </div>`).join('');
                 suggCont.classList.remove('hidden');
