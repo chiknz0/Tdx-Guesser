@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TDX Guessing Game - Online</title>
+    <style>
+        :root {
+            --tdx-bg: rgba(11, 14, 20, 0.9);
+            --tdx-panel: rgba(22, 27, 34, 0.85);
+            --tdx-gold: #ffb400;
+            --tdx-text: #e6edf3;
+            --correct: #2ea043;
+            --wrong: #da3633;
+            --border: rgba(255, 255, 255, 0.1);
+            --discord: #5865F2;
+            --coffee: #FFDD00;
+            --modal-bg: rgba(10, 10, 10, 0.95);
+        }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #0d1117;
+            background-image: url('https://static.wikia.nocookie.net/tdx/images/8/87/OilField.png/revision/latest?cb=20250328000712');
+            background-repeat: repeat-x;
+            background-size: cover;
+            background-position: center;
+            color: var(--tdx-text);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            animation: moveBg 180s linear infinite;
+            min-height: 100vh;
+        }
+
+        @keyframes moveBg {
+            from { background-position: 0 center; }
+            to { background-position: -2000px center; }
+        }
+
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .top-bar > * { pointer-events: auto; }
+
+        .top-actions { display: flex; gap: 8px; }
+
+        .streak-btn, .leaderboard-btn {
+            background: var(--tdx-panel);
+            color: var(--tdx-gold);
+            border: 1px solid var(--tdx-gold);
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            backdrop-filter: blur(4px);
+            transition: transform 0.1s;
+        }
+        .streak-btn:active, .leaderboard-btn:active { transform: scale(0.95); }
+
+        .game-wrapper {
+            width: 100%;
+            max-width: 340px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px; 
+            position: relative;
+            z-index: 1;
+            padding: 10px;
+            margin-top: 60px;
+            padding-bottom: 100px; 
+        }
+
+        .lang-select {
+            background: var(--tdx-panel);
+            color: var(--tdx-text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 3px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+
+        .branding-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .tdx-logo {
+            height: 60px; 
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+        }
+
+        .guesser-text {
+            font-size: 18px; 
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: white;
+            text-transform: uppercase;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .selection-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .mode-square {
+            aspect-ratio: 1 / 0.7; 
+            background: var(--tdx-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .mode-square:hover { border-color: var(--tdx-gold); }
+        .mode-square.active { border-color: var(--tdx-gold); background: rgba(255, 180, 0, 0.15); }
+        .mode-name { font-weight: 800; font-size: 9px; letter-spacing: 0.3px; }
+
+        .tdx-card {
+            width: 100%;
+            background-color: var(--tdx-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .pixel-display {
+            width: 120px; height: 120px;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        #pixel-canvas { width: 100%; height: 100%; image-rendering: pixelated; }
+
+        .lore-box {
+            background: rgba(0,0,0,0.4);
+            padding: 12px;
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 13px; 
+            min-height: 80px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .lore-word-hidden {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+            color: transparent;
+            margin: 0 1px;
+            display: inline-block;
+            user-select: none;
+        }
+
+        .search-card { background: var(--tdx-panel); border: 1px solid var(--tdx-gold); }
+        .search-wrapper { position: relative; display: flex; gap: 5px; width: 100%; }
+
+        input[type="text"] {
+            flex-grow: 1;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px;
+            color: white;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .guess-btn, .action-btn {
+            background: var(--tdx-gold);
+            border: none;
+            border-radius: 4px;
+            padding: 0 14px;
+            font-size: 11px;
+            font-weight: 900;
+            cursor: pointer;
+            height: 38px;
+        }
+
+        .suggestions {
+            position: absolute; bottom: 100%; left: 0; right: 0;
+            background: #1c2128; border: 1px solid var(--tdx-gold);
+            z-index: 100; max-height: 120px; overflow-y: auto; display: none;
+            border-radius: 4px; margin-bottom: 4px;
+        }
+
+        .suggestion-item { padding: 8px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .suggestion-item:hover { background: var(--tdx-gold); color: black; }
+
+        .result-headers {
+            display: grid; grid-template-columns: 40px 1fr 1fr 1fr;
+            gap: 4px; width: 100%; margin-bottom: 6px;
+            font-size: 9px; color: #8b949e; text-align: center;
+            font-weight: bold; text-transform: uppercase;
+        }
+
+        .guess-row {
+            display: grid; grid-template-columns: 40px 1fr 1fr 1fr;
+            gap: 3px; width: 100%; margin-bottom: 3px;
+        }
+
+        .attr-tile {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            height: 38px; display: flex; align-items: center; justify-content: center;
+            font-size: 9px; font-weight: 700; border-radius: 4px;
+        }
+
+        .attr-tile img { max-width: 90%; max-height: 90%; }
+        .correct { background-color: var(--correct) !important; }
+        .wrong { background-color: var(--wrong) !important; }
+
+        .victory-msg {
+            color: var(--correct); font-weight: 900; font-size: 14px;
+            margin: 8px 0; display: none; text-align: center; text-transform: uppercase;
+        }
+
+        .victory-buttons { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
+        .play-again-btn, .share-btn {
+            border: none; border-radius: 4px; padding: 8px;
+            font-weight: 900; cursor: pointer; display: none; flex: 1; font-size: 10px;
+        }
+
+        .play-again-btn { background: var(--tdx-gold); color: black; }
+        .share-btn { background: var(--discord); color: white; }
+
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.8); z-index: 2000;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--tdx-bg); border: 1px solid var(--tdx-gold);
+            border-radius: 15px; padding: 25px; width: 100%; max-width: 320px;
+            text-align: center; position: relative;
+        }
+
+        .close-modal {
+            position: absolute; top: 10px; right: 15px;
+            font-size: 20px; cursor: pointer; color: var(--tdx-gold);
+        }
+
+        .leaderboard-list {
+            text-align: left; margin-top: 15px; max-height: 350px; overflow-y: auto;
+            border-radius: 8px; background: rgba(0,0,0,0.2);
+        }
+        .leader-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .leader-row.me { background: rgba(255, 180, 0, 0.1); border-left: 3px solid var(--tdx-gold); }
+
+        .streak-count { font-size: 48px; font-weight: 900; color: var(--tdx-gold); margin: 10px 0; }
+        
+        .footer-links {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 100;
+        }
+
+        .footer-btn {
+            padding: 8px 16px; border-radius: 30px; text-decoration: none;
+            font-size: 12px; font-weight: 800; display: flex; align-items: center;
+        }
+
+        .btn-discord { background-color: var(--discord); color: white; }
+        .btn-donate { background-color: var(--coffee); color: black; }
+
+        #username-setup {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body onclick="playClickSound()">
+
+<div class="top-bar">
+    <select class="lang-select" onchange="changeLanguage(this.value)">
+        <option value="en">EN</option>
+        <option value="nl">NL</option>
+        <option value="de">DE</option>
+        <option value="es">ES</option>
+        <option value="ja">JP</option>
+    </select>
+    <div class="top-actions">
+        <button class="leaderboard-btn" onclick="openLeaderboardModal()">
+            🏆 RANK
+        </button>
+        <button class="streak-btn" onclick="openStreakModal()">
+            🔥 <span id="display-streak-val">0</span>
+        </button>
+    </div>
+</div>
+
+<!-- Streak Modal -->
+<div id="streak-modal" class="modal-overlay">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModals()">&times;</span>
+        
+        <!-- Login Gate -->
+        <div id="auth-gate">
+            <h2 style="color:var(--tdx-gold)">SAVE PROGRESS</h2>
+            <p style="font-size: 13px">Set a name to join the leaderboard!</p>
+            <div id="username-setup" style="display:flex">
+                <div class="search-wrapper">
+                    <input type="text" id="username-input" placeholder="Soldier_Name" maxlength="15">
+                    <button class="action-btn" id="save-username-btn">JOIN</button>
+                </div>
+                <div id="username-error" style="color:var(--wrong); font-size:10px; margin-top:5px; display:none"></div>
+            </div>
+        </div>
+
+        <!-- Main Streak View -->
+        <div id="streak-view" style="display:none">
+            <h2 id="user-display-name" style="color:var(--tdx-gold); font-size: 16px;">STREAK</h2>
+            <div class="streak-count" id="modal-streak-val">0</div>
+            <div id="checklist-ui" style="text-align:left; font-size:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+                <div id="check-classic">⬜ Classic Mode</div>
+                <div id="check-pixel">⬜ Pixel Mode</div>
+                <div id="check-lore">⬜ Description Mode</div>
+            </div>
+            <p style="font-size:10px; color:#666; margin-top:10px;">Cloud sync active via Supabase</p>
+        </div>
+    </div>
+</div>
+
+<!-- Leaderboard Modal -->
+<div id="leaderboard-modal" class="modal-overlay">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModals()">&times;</span>
+        <h2 style="color:var(--tdx-gold)">WORLD RANKINGS</h2>
+        <div class="leaderboard-list" id="global-leaderboard-list">
+            <div style="text-align:center; padding:30px; color:#555;">Connecting to Cloud...</div>
+        </div>
+    </div>
+</div>
+
+<div class="game-wrapper">
+    <div class="branding-header">
+        <img src="https://static.wikia.nocookie.net/tdx/images/3/3e/TDX_group_icon.png/revision/latest?cb=20231204175420" class="tdx-logo" alt="TDX Logo">
+        <div class="guesser-text">GUESSER</div>
+    </div>
+
+    <div class="selection-grid">
+        <div class="mode-square" id="nav-classic" onclick="switchMode('classic')">
+            <span class="mode-name">CLASSIC</span>
+        </div>
+        <div class="mode-square" id="nav-pixel" onclick="switchMode('pixel')">
+            <span class="mode-name">PIXEL</span>
+        </div>
+        <div class="mode-square" id="nav-lore" onclick="switchMode('lore')">
+            <span class="mode-name">DESCRIPTION</span>
+        </div>
+    </div>
+
+    <div id="game-container" style="width: 100%;">
+        <div class="tdx-card" id="mode-selection-content" style="display: block; text-align: center;">
+            <p style="font-size: 11px; margin: 5px 0;">Pick a mode above to begin.</p>
+        </div>
+
+        <div class="tdx-card" id="classic-box" style="display: none;">
+            <div id="classic-victory-msg" class="victory-msg"></div>
+            <div class="result-headers">
+                <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
+            </div>
+            <div class="guesses-container" id="classic-guesses"></div>
+            <div class="victory-buttons">
+                <button class="share-btn" id="classic-share-btn" onclick="shareResults()">SHARE</button>
+                <button class="play-again-btn" id="classic-play-again" onclick="resetGame()">PLAY AGAIN</button>
+            </div>
+        </div>
+
+        <div class="tdx-card" id="pixel-box" style="display: none;">
+            <div class="pixel-display"><canvas id="pixel-canvas"></canvas></div>
+            <div id="pixel-victory-msg" class="victory-msg"></div>
+            <div class="result-headers">
+                <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
+            </div>
+            <div class="guesses-container" id="pixel-guesses"></div>
+            <div class="victory-buttons">
+                <button class="share-btn" id="pixel-share-btn" onclick="shareResults()">SHARE</button>
+                <button class="play-again-btn" id="pixel-play-again" onclick="resetGame()">PLAY AGAIN</button>
+            </div>
+        </div>
+
+        <div class="tdx-card" id="lore-box-ui" style="display: none;">
+            <div class="lore-box" id="lore-text-display"></div>
+            <div id="lore-victory-msg" class="victory-msg"></div>
+            <div class="result-headers">
+                <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
+            </div>
+            <div class="guesses-container" id="lore-guesses"></div>
+            <div class="victory-buttons">
+                <button class="share-btn" id="lore-share-btn" onclick="shareResults()">SHARE</button>
+                <button class="play-again-btn" id="lore-play-again" onclick="resetGame()">PLAY AGAIN</button>
+            </div>
+        </div>
+
+        <div class="tdx-card search-card" id="search-panel" style="display: none;">
+            <div class="search-wrapper">
+                <input type="text" id="global-tower-input" placeholder="..." autocomplete="off">
+                <button class="guess-btn" id="submit-btn" onclick="performGlobalSubmit()">GO</button>
+                <div class="suggestions" id="global-suggestions"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer-links">
+    <a href="https://discord.gg/EjrHXRkGTt" target="_blank" class="footer-btn btn-discord">Discord</a>
+    <a href="https://buymeacoffee.com/tdxguesser" target="_blank" class="footer-btn btn-donate">Donate</a>
+</div>
+
+<script>
+    /**
+     * SUPABASE INTEGRATED CONFIG
+     */
+    const CLOUD_CONFIG = {
+        API_URL: "https://qhydmtrvhsltmoucgafy.supabase.co/rest/v1",
+        API_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoeWRtdHJ2aHNsdG1vdWNnYWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2MjQwMjYsImV4cCI6MjA4MjIwMDAyNn0.zGUuPS91m7sBBotc1W5DJpLR2hv7LiMS19RmAqw04zs",
+        PROJECT_ID: "qhydmtrvhsltmoucgafy"
+    };
+
+    // Global State
+    let streakData = { 
+        count: 0, 
+        lastUpdated: 0, 
+        dailyProgress: { classic: false, pixel: false, lore: false }, 
+        username: localStorage.getItem('tdx_user_name') || "" 
+    };
+
+    // Load local storage first
+    if(localStorage.getItem('tdx_streak_data')) {
+        streakData = JSON.parse(localStorage.getItem('tdx_streak_data'));
+    }
+
+    /**
+     * API Handler for Supabase
+     */
+    const CloudAPI = {
+        async saveStreak() {
+            if (!streakData.username) return;
+            localStorage.setItem('tdx_streak_data', JSON.stringify(streakData));
+            
+            try {
+                // Upsert logic (Insert or Update if exists)
+                await fetch(`${CLOUD_CONFIG.API_URL}/streaks`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'apikey': CLOUD_CONFIG.API_KEY,
+                        'Authorization': `Bearer ${CLOUD_CONFIG.API_KEY}`,
+                        'Prefer': 'resolution=merge-duplicates'
+                    },
+                    body: JSON.stringify({
+                        username: streakData.username,
+                        count: streakData.count,
+                        dailyProgress: streakData.dailyProgress,
+                        lastUpdated: streakData.lastUpdated
+                    })
+                });
+            } catch (e) { console.warn("Cloud sync failed, saved locally."); }
+        },
+
+        async getLeaderboard() {
+            try {
+                const res = await fetch(`${CLOUD_CONFIG.API_URL}/streaks?select=username,count&order=count.desc&limit=10`, {
+                    headers: { 
+                        'apikey': CLOUD_CONFIG.API_KEY,
+                        'Authorization': `Bearer ${CLOUD_CONFIG.API_KEY}`
+                    }
+                });
+                return await res.json();
+            } catch (e) { return []; }
+        }
+    };
+
+    // UI Updates
+    function updateStreakUI() {
+        document.getElementById('display-streak-val').textContent = streakData.count;
+        document.getElementById('modal-streak-val').textContent = streakData.count;
+        document.getElementById('user-display-name').textContent = (streakData.username || "RECRUIT").toUpperCase();
+        
+        document.getElementById('check-classic').textContent = (streakData.dailyProgress.classic ? "✅" : "⬜") + " Classic Mode";
+        document.getElementById('check-pixel').textContent = (streakData.dailyProgress.pixel ? "✅" : "⬜") + " Pixel Mode";
+        document.getElementById('check-lore').textContent = (streakData.dailyProgress.lore ? "✅" : "⬜") + " Description Mode";
+
+        if (streakData.username) {
+            document.getElementById('auth-gate').style.display = 'none';
+            document.getElementById('streak-view').style.display = 'block';
+        }
+    }
+
+    document.getElementById('save-username-btn').onclick = () => {
+        const name = document.getElementById('username-input').value.trim();
+        if (name.length < 3) return;
+        streakData.username = name;
+        localStorage.setItem('tdx_user_name', name);
+        updateStreakUI();
+        CloudAPI.saveStreak();
+    };
+
+    window.openStreakModal = () => {
+        document.getElementById('streak-modal').style.display = 'flex';
+        updateStreakUI();
+    };
+
+    window.openLeaderboardModal = async () => {
+        document.getElementById('leaderboard-modal').style.display = 'flex';
+        const lbList = document.getElementById('global-leaderboard-list');
+        lbList.innerHTML = '<div style="text-align:center; padding:20px;">Loading Rankings...</div>';
+        
+        const data = await CloudAPI.getLeaderboard();
+        lbList.innerHTML = '';
+        if (!data || data.length === 0) {
+            lbList.innerHTML = '<div style="text-align:center; padding:20px; color:#555;">No records yet. Be the first!</div>';
+            return;
+        }
+
+        data.forEach((p, i) => {
+            const div = document.createElement('div');
+            div.className = 'leader-row' + (p.username === streakData.username ? ' me' : '');
+            div.innerHTML = `<span>#${i+1} ${p.username}</span><span style="color:var(--tdx-gold)">${p.count}</span>`;
+            lbList.appendChild(div);
+        });
+    };
+
+    window.closeModals = () => {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    };
+
+    // --- GAME ENGINE ---
+    const towers = [
+        { name: "Ranger", rarity: "Intermediate", type: "Ground", range: "Long", lore: "A versatile ground soldier using a rifle to eliminate enemies from a long distance.", image: "https://static.wikia.nocookie.net/tdx/images/6/61/RangerNew.png/revision/latest?cb=20240129092923" },
+        { name: "Shotgunner", rarity: "Starter", type: "Ground", range: "Short", lore: "Equipped with a powerful shotgun to blast through crowds at short range.", image: "https://static.wikia.nocookie.net/tdx/images/5/56/ShotgunnerBase.png/revision/latest?cb=20240428222245" },
+        { name: "Operator", rarity: "Advanced", type: "Ground", range: "Medium", lore: "Spawns armored cars to intercept enemies while wearing heavy black armor.", image: "https://static.wikia.nocookie.net/tdx/images/6/66/Operator_0.png/revision/latest?cb=20231217033100" },
+        { name: "Mine Layer", rarity: "Advanced", type: "Ground", range: "Short", lore: "Deploys hidden traps and explosives onto the path to catch enemies off guard.", image: "https://static.wikia.nocookie.net/tdx/images/a/a2/Mine_Layer_0.png/revision/latest?cb=20240119095731" },
+        { name: "Sniper", rarity: "Intermediate", type: "Cliff", range: "Long", lore: "A precise marksman stationed on high cliffs to provide long range cover fire.", image: "https://static.wikia.nocookie.net/tdx/images/f/f7/Sniper_0.png/revision/latest?cb=20240119012924" },
+        { name: "Commander", rarity: "Intermediate", type: "Ground", range: "Short", lore: "Supports nearby towers with buffs and calls in reinforcements to the battlefield.", image: "https://static.wikia.nocookie.net/tdx/images/e/e5/Commander_0.png/revision/latest?cb=20240119013002" }
+    ];
+
+    let activeMode = null;
+    let target = null;
+    let isFinished = false;
+    let revealedPercent = 0.15;
+    let currentPixelSize = 4;
+    const targetImg = new Image();
+    targetImg.crossOrigin = "anonymous";
+
+    window.switchMode = (mode) => {
+        activeMode = mode;
+        isFinished = false;
+        revealedPercent = 0.15;
+        currentPixelSize = 4;
+        target = towers[Math.floor(Math.random() * towers.length)];
+        
+        document.getElementById('mode-selection-content').style.display = 'none';
+        document.getElementById('classic-box').style.display = 'none';
+        document.getElementById('pixel-box').style.display = 'none';
+        document.getElementById('lore-box-ui').style.display = 'none';
+        document.getElementById('search-panel').style.display = 'flex';
+        
+        document.querySelectorAll('.mode-square').forEach(el => el.classList.remove('active'));
+        document.getElementById(`nav-${mode}`).classList.add('active');
+
+        document.querySelectorAll('.guesses-container').forEach(c => c.innerHTML = '');
+        document.querySelectorAll('.victory-msg, .play-again-btn, .share-btn').forEach(el => el.style.display = 'none');
+        document.getElementById('global-tower-input').disabled = false;
+        document.getElementById('submit-btn').style.display = 'block';
+
+        if (mode === 'classic') document.getElementById('classic-box').style.display = 'flex';
+        else if (mode === 'pixel') {
+            document.getElementById('pixel-box').style.display = 'flex';
+            targetImg.src = target.image;
+        } else if (mode === 'lore') {
+            document.getElementById('lore-box-ui').style.display = 'flex';
+            renderLore();
+        }
+    };
+
+    function renderLore() {
+        const loreDisplay = document.getElementById('lore-text-display');
+        const words = target.lore.split(' ');
+        loreDisplay.innerHTML = words.map((word, index) => {
+            const shouldReveal = isFinished || index === 0 || (index / words.length) < revealedPercent;
+            return shouldReveal ? `<span>${word}</span>` : `<span class="lore-word-hidden" style="width: ${word.length * 6}px;">&nbsp;</span>`;
+        }).join(' ');
+    }
+
+    targetImg.onload = () => { if (activeMode === 'pixel') drawPixelated(); };
+
+    function drawPixelated() {
+        const canvas = document.getElementById('pixel-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const size = isFinished ? 512 : currentPixelSize;
+        canvas.width = size; canvas.height = size;
+        ctx.clearRect(0, 0, size, size);
+        ctx.drawImage(targetImg, 0, 0, size, size);
+    }
+
+    const globalInput = document.getElementById('global-tower-input');
+    const globalSuggest = document.getElementById('global-suggestions');
+
+    globalInput.oninput = () => {
+        const val = globalInput.value.toLowerCase();
+        globalSuggest.innerHTML = '';
+        if (!val) { globalSuggest.style.display = 'none'; return; }
+        const filtered = towers.filter(t => t.name.toLowerCase().includes(val));
+        filtered.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.textContent = t.name;
+            div.onclick = () => { globalInput.value = t.name; performGlobalSubmit(); };
+            globalSuggest.appendChild(div);
+        });
+        globalSuggest.style.display = 'block';
+    };
+
+    window.performGlobalSubmit = () => {
+        if (isFinished) return;
+        const name = globalInput.value.trim().toLowerCase();
+        const guess = towers.find(t => t.name.toLowerCase() === name);
+        if (guess) handleGuess(guess);
+    };
+
+    function handleGuess(guess) {
+        globalInput.value = '';
+        globalSuggest.style.display = 'none';
+        const container = document.getElementById(`${activeMode}-guesses`);
+        
+        const row = document.createElement('div');
+        row.className = 'guess-row';
+        row.innerHTML = `
+            <div class="attr-tile"><img src="${guess.image}"></div>
+            <div class="attr-tile ${guess.rarity === target.rarity ? 'correct' : 'wrong'}">${guess.rarity}</div>
+            <div class="attr-tile ${guess.type === target.type ? 'correct' : 'wrong'}">${guess.type}</div>
+            <div class="attr-tile ${guess.range === target.range ? 'correct' : 'wrong'}">${guess.range}</div>
+        `;
+        container.prepend(row);
+
+        if (guess.name === target.name) {
+            isFinished = true;
+            document.getElementById('submit-btn').style.display = 'none';
+            const msgEl = document.getElementById(`${activeMode}-victory-msg`);
+            msgEl.textContent = "IDENTIFIED!";
+            msgEl.style.display = 'block';
+            document.getElementById(`${activeMode}-play-again`).style.display = 'block';
+            document.getElementById(`${activeMode}-share-btn`).style.display = 'block';
+            if (activeMode === 'pixel') drawPixelated();
+            if (activeMode === 'lore') renderLore();
+            
+            // Handle Streak
+            if (!streakData.dailyProgress[activeMode]) {
+                streakData.dailyProgress[activeMode] = true;
+                if (streakData.dailyProgress.classic && streakData.dailyProgress.pixel && streakData.dailyProgress.lore) {
+                    streakData.count++;
+                    streakData.lastUpdated = Date.now();
+                }
+                CloudAPI.saveStreak();
+            }
+        } else {
+            if (activeMode === 'pixel') { currentPixelSize = Math.min(currentPixelSize + 12, 128); drawPixelated(); }
+            else if (activeMode === 'lore') { revealedPercent += 0.2; renderLore(); }
+        }
+    }
+
+    window.resetGame = () => { switchMode(activeMode); };
+
+    function playClickSound() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.frequency.setValueAtTime(400, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
+            osc.connect(g); g.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.1);
+        } catch(e){}
+    }
+
+    updateStreakUI();
+</script>
+
+</body>
+</html>
