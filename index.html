@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- FIX 1: This meta tag prevents sending the Referrer header, allowing Wikia images to load -->
     <meta name="referrer" content="no-referrer">
     <title>TDX Guessing Game - Online</title>
     <style>
@@ -31,15 +30,14 @@
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: #0d1117;
-            /* Fallback color if image fails */
-            background-image: url('https://static.wikia.nocookie.net/tdx/images/8/87/OilField.png/revision/latest?cb=20250328000712');
+            background-image: url('https://wsrv.nl/?url=static.wikia.nocookie.net/tdx/images/8/87/OilField.png&output=png');
             background-repeat: repeat-x;
             background-size: cover;
             background-position: center;
             color: var(--tdx-text);
             display: flex;
-            align-items: flex-start;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
             animation: moveBg 180s linear infinite;
             min-height: 100vh;
         }
@@ -47,6 +45,74 @@
         @keyframes moveBg {
             from { background-position: 0 center; }
             to { background-position: -2000px center; }
+        }
+
+        /* Layout Container for Sidebar Ads */
+        .layout-wrapper {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 60px;
+            gap: 20px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .side-ad-unit {
+            flex: 1;
+            min-width: 120px;
+            max-width: 160px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .side-ad-unit span {
+            color: white;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 700px) {
+            .side-ad-unit { display: none; }
+            .layout-wrapper { margin-top: 60px; }
+        }
+
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.5);
+            z-index: 20;
+        }
+
+        .loading-text {
+            color: var(--tdx-gold);
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: pulse 1.5s infinite ease-in-out;
+            text-align: center;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
         }
 
         .top-bar {
@@ -66,7 +132,7 @@
 
         .top-actions { display: flex; gap: 8px; }
 
-        .streak-btn, .leaderboard-btn {
+        .streak-btn, .leaderboard-btn, .mute-btn {
             background: var(--tdx-panel);
             color: var(--tdx-gold);
             border: 1px solid var(--tdx-gold);
@@ -81,7 +147,7 @@
             backdrop-filter: blur(4px);
             transition: transform 0.1s;
         }
-        .streak-btn:active, .leaderboard-btn:active { transform: scale(0.95); }
+        .streak-btn:active, .leaderboard-btn:active, .mute-btn:active { transform: scale(0.95); }
 
         .game-wrapper {
             width: 100%;
@@ -92,21 +158,7 @@
             gap: 10px; 
             position: relative;
             z-index: 1;
-            padding: 10px;
-            margin-top: 60px;
-            padding-bottom: 100px; 
-        }
-
-        .lang-select {
-            background: var(--tdx-panel);
-            color: var(--tdx-text);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 3px 6px;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
+            padding-bottom: 40px; 
         }
 
         .branding-header {
@@ -173,15 +225,24 @@
         }
 
         .pixel-display {
-            width: 120px; height: 120px;
+            width: 150px; height: 150px;
             background: rgba(0,0,0,0.8);
             border: 1px solid var(--border);
             border-radius: 6px;
             overflow: hidden;
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
 
-        #pixel-canvas { width: 100%; height: 100%; image-rendering: pixelated; }
+        #pixel-canvas { 
+            width: 100%; 
+            height: 100%; 
+            image-rendering: pixelated; 
+            image-rendering: crisp-edges;
+        }
 
         .lore-box {
             background: rgba(0,0,0,0.4);
@@ -318,6 +379,20 @@
         .btn-discord { background-color: var(--discord); color: white; }
         .btn-donate { background-color: var(--coffee); color: black; }
 
+        .made-by {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: white;
+            text-transform: uppercase;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.95);
+            border-top: 2px solid var(--tdx-gold);
+            padding-top: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
         #username-setup {
             display: none;
             flex-direction: column;
@@ -326,17 +401,20 @@
         }
     </style>
 </head>
-<body onclick="playClickSound()">
+<body onclick="startMusicOnInteraction(); playClickSound()">
+
+<audio id="bg-music" loop preload="auto">
+    <source src="uploaded:YTDown.com_YouTube_Let-Us-Dance-Original-Soundtrack-of-Towe_Media_dsgTKwawcmE_007_48k (1).m4a" type="audio/x-m4a">
+</audio>
 
 <div class="top-bar">
-    <select class="lang-select" onchange="changeLanguage(this.value)">
+    <select class="lang-select">
         <option value="en">EN</option>
-        <option value="nl">NL</option>
-        <option value="de">DE</option>
-        <option value="es">ES</option>
-        <option value="ja">JP</option>
     </select>
     <div class="top-actions">
+        <button class="mute-btn" id="music-toggle" onclick="toggleMusic(event)">
+            🔊
+        </button>
         <button class="leaderboard-btn" onclick="openLeaderboardModal()">
             🏆 RANK
         </button>
@@ -346,12 +424,9 @@
     </div>
 </div>
 
-<!-- Streak Modal -->
 <div id="streak-modal" class="modal-overlay">
     <div class="modal-content">
         <span class="close-modal" onclick="closeModals()">&times;</span>
-        
-        <!-- Login Gate -->
         <div id="auth-gate">
             <h2 style="color:var(--tdx-gold)">SAVE PROGRESS</h2>
             <p style="font-size: 13px">Set a name to join the leaderboard!</p>
@@ -360,11 +435,8 @@
                     <input type="text" id="username-input" placeholder="Soldier_Name" maxlength="15">
                     <button class="action-btn" id="save-username-btn">JOIN</button>
                 </div>
-                <div id="username-error" style="color:var(--wrong); font-size:10px; margin-top:5px; display:none"></div>
             </div>
         </div>
-
-        <!-- Main Streak View -->
         <div id="streak-view" style="display:none">
             <h2 id="user-display-name" style="color:var(--tdx-gold); font-size: 16px;">STREAK</h2>
             <div class="streak-count" id="modal-streak-val">0</div>
@@ -373,12 +445,10 @@
                 <div id="check-pixel">⬜ Pixel Mode</div>
                 <div id="check-lore">⬜ Description Mode</div>
             </div>
-            <p style="font-size:10px; color:#666; margin-top:10px;">Cloud sync active via Supabase</p>
         </div>
     </div>
 </div>
 
-<!-- Leaderboard Modal -->
 <div id="leaderboard-modal" class="modal-overlay">
     <div class="modal-content">
         <span class="close-modal" onclick="closeModals()">&times;</span>
@@ -389,74 +459,95 @@
     </div>
 </div>
 
-<div class="game-wrapper">
-    <div class="branding-header">
-        <img src="https://static.wikia.nocookie.net/tdx/images/3/3e/TDX_group_icon.png/revision/latest?cb=20231204175420" class="tdx-logo" alt="TDX Logo">
-        <div class="guesser-text">GUESSER</div>
+<div class="layout-wrapper">
+    <!-- Side Ad Left -->
+    <div class="side-ad-unit">
+        <span>ADVERTISEMENT</span>
     </div>
 
-    <div class="selection-grid">
-        <div class="mode-square" id="nav-classic" onclick="switchMode('classic')">
-            <span class="mode-name">CLASSIC</span>
+    <div class="game-wrapper">
+        <div class="branding-header">
+            <img src="https://wsrv.nl/?url=static.wikia.nocookie.net/tdx/images/3/3e/TDX_group_icon.png/revision/latest&output=png" class="tdx-logo" alt="TDX Logo">
+            <div class="guesser-text">GUESSER</div>
         </div>
-        <div class="mode-square" id="nav-pixel" onclick="switchMode('pixel')">
-            <span class="mode-name">PIXEL</span>
+
+        <div class="selection-grid">
+            <div class="mode-square" id="nav-classic" onclick="switchMode('classic')">
+                <span class="mode-name">CLASSIC</span>
+            </div>
+            <div class="mode-square" id="nav-pixel" onclick="switchMode('pixel')">
+                <span class="mode-name">PIXEL</span>
+            </div>
+            <div class="mode-square" id="nav-lore" onclick="switchMode('lore')">
+                <span class="mode-name">DESCRIPTION</span>
+            </div>
         </div>
-        <div class="mode-square" id="nav-lore" onclick="switchMode('lore')">
-            <span class="mode-name">DESCRIPTION</span>
+
+        <div id="game-container" style="width: 100%;">
+            <div class="tdx-card" id="mode-selection-content" style="display: block; text-align: center;">
+                <p style="font-size: 11px; margin: 5px 0;">Pick a mode above to begin.</p>
+            </div>
+
+            <div class="tdx-card" id="classic-box" style="display: none;">
+                <div id="classic-victory-msg" class="victory-msg"></div>
+                <div class="result-headers">
+                    <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
+                </div>
+                <div class="guesses-container" id="classic-guesses"></div>
+                <div class="victory-buttons">
+                    <button class="share-btn" id="classic-share-btn">SHARE</button>
+                    <button class="play-again-btn" id="classic-play-again" onclick="resetGame()">PLAY AGAIN</button>
+                </div>
+            </div>
+
+            <div class="tdx-card" id="pixel-box" style="display: none;">
+                <div class="pixel-display">
+                    <div class="loading-overlay" id="pixel-loading-overlay">
+                        <div class="loading-text">LOADING...</div>
+                    </div>
+                    <canvas id="pixel-canvas"></canvas>
+                </div>
+                <div id="pixel-victory-msg" class="victory-msg"></div>
+                <div class="result-headers">
+                    <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
+                </div>
+                <div class="guesses-container" id="pixel-guesses"></div>
+                <div class="victory-buttons">
+                    <button class="share-btn" id="pixel-share-btn">SHARE</button>
+                    <button class="play-again-btn" id="pixel-play-again" onclick="resetGame()">PLAY AGAIN</button>
+                </div>
+            </div>
+
+            <div class="tdx-card" id="lore-box-ui" style="display: none;">
+                <div class="lore-box" id="lore-text-display"></div>
+                <div id="lore-victory-msg" class="victory-msg"></div>
+                <div class="result-headers">
+                    <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
+                </div>
+                <div class="guesses-container" id="lore-guesses"></div>
+                <div class="victory-buttons">
+                    <button class="share-btn" id="lore-share-btn">SHARE</button>
+                    <button class="play-again-btn" id="lore-play-again" onclick="resetGame()">PLAY AGAIN</button>
+                </div>
+            </div>
+
+            <div class="tdx-card search-card" id="search-panel" style="display: none;">
+                <div style="width:100%">
+                    <div class="search-wrapper">
+                        <input type="text" id="global-tower-input" placeholder="..." autocomplete="off">
+                        <button class="guess-btn" id="submit-btn" onclick="performGlobalSubmit()">GO</button>
+                        <div class="suggestions" id="global-suggestions"></div>
+                    </div>
+                </div>
+            </div>
         </div>
+        
+        <div class="made-by">Made by Chiknz</div>
     </div>
 
-    <div id="game-container" style="width: 100%;">
-        <div class="tdx-card" id="mode-selection-content" style="display: block; text-align: center;">
-            <p style="font-size: 11px; margin: 5px 0;">Pick a mode above to begin.</p>
-        </div>
-
-        <div class="tdx-card" id="classic-box" style="display: none;">
-            <div id="classic-victory-msg" class="victory-msg"></div>
-            <div class="result-headers">
-                <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
-            </div>
-            <div class="guesses-container" id="classic-guesses"></div>
-            <div class="victory-buttons">
-                <button class="share-btn" id="classic-share-btn" onclick="shareResults()">SHARE</button>
-                <button class="play-again-btn" id="classic-play-again" onclick="resetGame()">PLAY AGAIN</button>
-            </div>
-        </div>
-
-        <div class="tdx-card" id="pixel-box" style="display: none;">
-            <div class="pixel-display"><canvas id="pixel-canvas"></canvas></div>
-            <div id="pixel-victory-msg" class="victory-msg"></div>
-            <div class="result-headers">
-                <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
-            </div>
-            <div class="guesses-container" id="pixel-guesses"></div>
-            <div class="victory-buttons">
-                <button class="share-btn" id="pixel-share-btn" onclick="shareResults()">SHARE</button>
-                <button class="play-again-btn" id="pixel-play-again" onclick="resetGame()">PLAY AGAIN</button>
-            </div>
-        </div>
-
-        <div class="tdx-card" id="lore-box-ui" style="display: none;">
-            <div class="lore-box" id="lore-text-display"></div>
-            <div id="lore-victory-msg" class="victory-msg"></div>
-            <div class="result-headers">
-                <div>Icon</div><div>Rar</div><div>Type</div><div>Rng</div>
-            </div>
-            <div class="guesses-container" id="lore-guesses"></div>
-            <div class="victory-buttons">
-                <button class="share-btn" id="lore-share-btn" onclick="shareResults()">SHARE</button>
-                <button class="play-again-btn" id="lore-play-again" onclick="resetGame()">PLAY AGAIN</button>
-            </div>
-        </div>
-
-        <div class="tdx-card search-card" id="search-panel" style="display: none;">
-            <div class="search-wrapper">
-                <input type="text" id="global-tower-input" placeholder="..." autocomplete="off">
-                <button class="guess-btn" id="submit-btn" onclick="performGlobalSubmit()">GO</button>
-                <div class="suggestions" id="global-suggestions"></div>
-            </div>
-        </div>
+    <!-- Side Ad Right -->
+    <div class="side-ad-unit">
+        <span>ADVERTISEMENT</span>
     </div>
 </div>
 
@@ -466,16 +557,37 @@
 </div>
 
 <script>
-    /**
-     * SUPABASE INTEGRATED CONFIG
-     */
+    const music = document.getElementById('bg-music');
+    let musicStarted = false;
+    let isMuted = false;
+
+    function startMusicOnInteraction() {
+        if (!musicStarted) {
+            music.play()
+                .then(() => {
+                    musicStarted = true;
+                })
+                .catch(e => {
+                    console.warn("Music play failed:", e);
+                });
+        }
+    }
+
+    function toggleMusic(e) {
+        if (e) e.stopPropagation();
+        isMuted = !isMuted;
+        music.muted = isMuted;
+        document.getElementById('music-toggle').textContent = isMuted ? '🔇' : '🔊';
+        if (!isMuted && music.paused) {
+            music.play();
+        }
+    }
+
     const CLOUD_CONFIG = {
         API_URL: "https://qhydmtrvhsltmoucgafy.supabase.co/rest/v1",
         API_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoeWRtdHJ2aHNsdG1vdWNnYWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2MjQwMjYsImV4cCI6MjA4MjIwMDAyNn0.zGUuPS91m7sBBotc1W5DJpLR2hv7LiMS19RmAqw04zs",
-        PROJECT_ID: "qhydmtrvhsltmoucgafy"
     };
 
-    // Global State
     let streakData = { 
         count: 0, 
         lastUpdated: 0, 
@@ -483,21 +595,15 @@
         username: localStorage.getItem('tdx_user_name') || "" 
     };
 
-    // Load local storage first
     if(localStorage.getItem('tdx_streak_data')) {
         streakData = JSON.parse(localStorage.getItem('tdx_streak_data'));
     }
 
-    /**
-     * API Handler for Supabase
-     */
     const CloudAPI = {
         async saveStreak() {
             if (!streakData.username) return;
             localStorage.setItem('tdx_streak_data', JSON.stringify(streakData));
-            
             try {
-                // Upsert logic (Insert or Update if exists)
                 await fetch(`${CLOUD_CONFIG.API_URL}/streaks`, {
                     method: 'POST',
                     headers: { 
@@ -513,28 +619,22 @@
                         lastUpdated: streakData.lastUpdated
                     })
                 });
-            } catch (e) { console.warn("Cloud sync failed, saved locally."); }
+            } catch (e) { console.warn("Cloud sync failed"); }
         },
-
         async getLeaderboard() {
             try {
                 const res = await fetch(`${CLOUD_CONFIG.API_URL}/streaks?select=username,count&order=count.desc&limit=10`, {
-                    headers: { 
-                        'apikey': CLOUD_CONFIG.API_KEY,
-                        'Authorization': `Bearer ${CLOUD_CONFIG.API_KEY}`
-                    }
+                    headers: { 'apikey': CLOUD_CONFIG.API_KEY, 'Authorization': `Bearer ${CLOUD_CONFIG.API_KEY}` }
                 });
                 return await res.json();
             } catch (e) { return []; }
         }
     };
 
-    // UI Updates
     function updateStreakUI() {
         document.getElementById('display-streak-val').textContent = streakData.count;
         document.getElementById('modal-streak-val').textContent = streakData.count;
         document.getElementById('user-display-name').textContent = (streakData.username || "RECRUIT").toUpperCase();
-        
         document.getElementById('check-classic').textContent = (streakData.dailyProgress.classic ? "✅" : "⬜") + " Classic Mode";
         document.getElementById('check-pixel').textContent = (streakData.dailyProgress.pixel ? "✅" : "⬜") + " Pixel Mode";
         document.getElementById('check-lore').textContent = (streakData.dailyProgress.lore ? "✅" : "⬜") + " Description Mode";
@@ -563,14 +663,8 @@
         document.getElementById('leaderboard-modal').style.display = 'flex';
         const lbList = document.getElementById('global-leaderboard-list');
         lbList.innerHTML = '<div style="text-align:center; padding:20px;">Loading Rankings...</div>';
-        
         const data = await CloudAPI.getLeaderboard();
         lbList.innerHTML = '';
-        if (!data || data.length === 0) {
-            lbList.innerHTML = '<div style="text-align:center; padding:20px; color:#555;">No records yet. Be the first!</div>';
-            return;
-        }
-
         data.forEach((p, i) => {
             const div = document.createElement('div');
             div.className = 'leader-row' + (p.username === streakData.username ? ' me' : '');
@@ -583,27 +677,23 @@
         document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
     };
 
-    // --- GAME ENGINE ---
-    const towers = [
-        { name: "Ranger", rarity: "Intermediate", type: "Ground", range: "Long", lore: "A versatile ground soldier using a rifle to eliminate enemies from a long distance.", image: "https://static.wikia.nocookie.net/tdx/images/6/61/RangerNew.png/revision/latest?cb=20240129092923" },
-        { name: "Shotgunner", rarity: "Starter", type: "Ground", range: "Short", lore: "Equipped with a powerful shotgun to blast through crowds at short range.", image: "https://static.wikia.nocookie.net/tdx/images/5/56/ShotgunnerBase.png/revision/latest?cb=20240428222245" },
-        { name: "Operator", rarity: "Advanced", type: "Ground", range: "Medium", lore: "Spawns armored cars to intercept enemies while wearing heavy black armor.", image: "https://static.wikia.nocookie.net/tdx/images/6/66/Operator_0.png/revision/latest?cb=20231217033100" },
-        { name: "Mine Layer", rarity: "Advanced", type: "Ground", range: "Short", lore: "Deploys hidden traps and explosives onto the path to catch enemies off guard.", image: "https://static.wikia.nocookie.net/tdx/images/a/a2/Mine_Layer_0.png/revision/latest?cb=20240119095731" },
-        { name: "Sniper", rarity: "Intermediate", type: "Cliff", range: "Long", lore: "A precise marksman stationed on high cliffs to provide long range cover fire.", image: "https://static.wikia.nocookie.net/tdx/images/f/f7/Sniper_0.png/revision/latest?cb=20240119012924" },
-        { name: "Commander", rarity: "Intermediate", type: "Ground", range: "Short", lore: "Supports nearby towers with buffs and calls in reinforcements to the battlefield.", image: "https://static.wikia.nocookie.net/tdx/images/e/e5/Commander_0.png/revision/latest?cb=20240119013002" }
-    ];
+    const proxy = (url) => {
+        let cleanUrl = url.split('/revision')[0].split('?')[0].replace(/^https?:\/\//, '');
+        return `https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}&output=png`;
+    };
 
-    let activeMode = null;
-    let target = null;
-    let isFinished = false;
-    let revealedPercent = 0.15;
-    let currentPixelSize = 4;
+    const towers = [
+        { name: "Ranger", rarity: "Intermediate", type: "Ground", range: "Long", lore: "A versatile ground soldier using a rifle to eliminate enemies from a long distance.", image: "https://static.wikia.nocookie.net/tdx/images/6/61/RangerNew.png" },
+        { name: "Shotgunner", rarity: "Starter", type: "Ground", range: "Short", lore: "Equipped with a powerful shotgun to blast through crowds at short range.", image: "https://static.wikia.nocookie.net/tdx/images/5/56/ShotgunnerBase.png" },
+        { name: "Operator", rarity: "Advanced", type: "Ground", range: "Medium", lore: "Spawns armored cars to intercept enemies while wearing heavy black armor.", image: "https://static.wikia.nocookie.net/tdx/images/6/66/Operator_0.png" },
+        { name: "Mine Layer", rarity: "Advanced", type: "Ground", range: "Short", lore: "Deploys hidden traps and explosives onto the path to catch enemies off guard.", image: "https://static.wikia.nocookie.net/tdx/images/a/a2/Mine_Layer_0.png" },
+        { name: "Sniper", rarity: "Intermediate", type: "Cliff", range: "Long", lore: "A precise marksman stationed on high cliffs to provide long range cover fire.", image: "https://static.wikia.nocookie.net/tdx/images/f/f7/Sniper_0.png" },
+        { name: "Commander", rarity: "Intermediate", type: "Ground", range: "Short", lore: "Supports nearby towers with buffs and calls in reinforcements to the battlefield.", image: "https://static.wikia.nocookie.net/tdx/images/e/e5/Commander_0.png" }
+    ].map(t => ({...t, image: proxy(t.image)}));
+
+    let activeMode = null, target = null, isFinished = false, revealedPercent = 0.15, currentPixelSize = 4;
     const targetImg = new Image();
-    
-    // FIX 2: Removed crossOrigin assignment. 
-    // Setting this to 'anonymous' when the server (Wikia) doesn't support CORS causes the image to fail completely.
-    // By removing it, the image loads opaquely (tainted) which is fine for display on canvas.
-    // targetImg.crossOrigin = "anonymous"; 
+    targetImg.crossOrigin = "anonymous"; 
 
     window.switchMode = (mode) => {
         activeMode = mode;
@@ -613,14 +703,10 @@
         target = towers[Math.floor(Math.random() * towers.length)];
         
         document.getElementById('mode-selection-content').style.display = 'none';
-        document.getElementById('classic-box').style.display = 'none';
-        document.getElementById('pixel-box').style.display = 'none';
-        document.getElementById('lore-box-ui').style.display = 'none';
+        ['classic-box', 'pixel-box', 'lore-box-ui'].forEach(id => document.getElementById(id).style.display = 'none');
         document.getElementById('search-panel').style.display = 'flex';
-        
         document.querySelectorAll('.mode-square').forEach(el => el.classList.remove('active'));
         document.getElementById(`nav-${mode}`).classList.add('active');
-
         document.querySelectorAll('.guesses-container').forEach(c => c.innerHTML = '');
         document.querySelectorAll('.victory-msg, .play-again-btn, .share-btn').forEach(el => el.style.display = 'none');
         document.getElementById('global-tower-input').disabled = false;
@@ -629,6 +715,9 @@
         if (mode === 'classic') document.getElementById('classic-box').style.display = 'flex';
         else if (mode === 'pixel') {
             document.getElementById('pixel-box').style.display = 'flex';
+            document.getElementById('pixel-loading-overlay').style.display = 'flex';
+            const canvas = document.getElementById('pixel-canvas');
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
             targetImg.src = target.image;
         } else if (mode === 'lore') {
             document.getElementById('lore-box-ui').style.display = 'flex';
@@ -645,29 +734,19 @@
         }).join(' ');
     }
 
-    targetImg.onload = () => { if (activeMode === 'pixel') drawPixelated(); };
-    
-    // Add error handling to debug if images are still blocked
-    targetImg.onerror = () => {
-        console.error("Image failed to load. Check console for 403 Forbidden errors.");
-        // Optional: Draw a fallback text on canvas if image fails
-        if(activeMode === 'pixel') {
-             const canvas = document.getElementById('pixel-canvas');
-             const ctx = canvas.getContext('2d');
-             ctx.fillStyle = "#333";
-             ctx.fillRect(0,0, canvas.width, canvas.height);
-             ctx.fillStyle = "#fff";
-             ctx.font = "10px Arial";
-             ctx.fillText("Image Error", 10, 50);
-        }
+    targetImg.onload = () => { 
+        document.getElementById('pixel-loading-overlay').style.display = 'none';
+        if (activeMode === 'pixel') drawPixelated(); 
     };
-
+    
     function drawPixelated() {
         const canvas = document.getElementById('pixel-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const size = isFinished ? 512 : currentPixelSize;
-        canvas.width = size; canvas.height = size;
+        canvas.width = size; 
+        canvas.height = size;
+        ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, size, size);
         ctx.drawImage(targetImg, 0, 0, size, size);
     }
@@ -679,8 +758,7 @@
         const val = globalInput.value.toLowerCase();
         globalSuggest.innerHTML = '';
         if (!val) { globalSuggest.style.display = 'none'; return; }
-        const filtered = towers.filter(t => t.name.toLowerCase().includes(val));
-        filtered.forEach(t => {
+        towers.filter(t => t.name.toLowerCase().includes(val)).forEach(t => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
             div.textContent = t.name;
@@ -701,11 +779,10 @@
         globalInput.value = '';
         globalSuggest.style.display = 'none';
         const container = document.getElementById(`${activeMode}-guesses`);
-        
         const row = document.createElement('div');
         row.className = 'guess-row';
         row.innerHTML = `
-            <div class="attr-tile"><img src="${guess.image}" onerror="this.src='https://placehold.co/40?text=Error'"></div>
+            <div class="attr-tile"><img src="${guess.image}"></div>
             <div class="attr-tile ${guess.rarity === target.rarity ? 'correct' : 'wrong'}">${guess.rarity}</div>
             <div class="attr-tile ${guess.type === target.type ? 'correct' : 'wrong'}">${guess.type}</div>
             <div class="attr-tile ${guess.range === target.range ? 'correct' : 'wrong'}">${guess.range}</div>
@@ -722,8 +799,6 @@
             document.getElementById(`${activeMode}-share-btn`).style.display = 'block';
             if (activeMode === 'pixel') drawPixelated();
             if (activeMode === 'lore') renderLore();
-            
-            // Handle Streak
             if (!streakData.dailyProgress[activeMode]) {
                 streakData.dailyProgress[activeMode] = true;
                 if (streakData.dailyProgress.classic && streakData.dailyProgress.pixel && streakData.dailyProgress.lore) {
@@ -733,12 +808,15 @@
                 CloudAPI.saveStreak();
             }
         } else {
-            if (activeMode === 'pixel') { currentPixelSize = Math.min(currentPixelSize + 12, 128); drawPixelated(); }
+            if (activeMode === 'pixel') { 
+                currentPixelSize = Math.min(currentPixelSize * 2, 512); 
+                drawPixelated(); 
+            }
             else if (activeMode === 'lore') { revealedPercent += 0.2; renderLore(); }
         }
     }
 
-    window.resetGame = () => { switchMode(activeMode); };
+    window.resetGame = () => switchMode(activeMode);
 
     function playClickSound() {
         try {
@@ -751,9 +829,7 @@
             osc.start(); osc.stop(ctx.currentTime + 0.1);
         } catch(e){}
     }
-
     updateStreakUI();
 </script>
-
 </body>
 </html>
