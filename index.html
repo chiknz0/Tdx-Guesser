@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- FIX 1: This meta tag prevents sending the Referrer header, allowing Wikia images to load -->
+    <meta name="referrer" content="no-referrer">
     <title>TDX Guessing Game - Online</title>
     <style>
         :root {
@@ -29,6 +31,7 @@
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: #0d1117;
+            /* Fallback color if image fails */
             background-image: url('https://static.wikia.nocookie.net/tdx/images/8/87/OilField.png/revision/latest?cb=20250328000712');
             background-repeat: repeat-x;
             background-size: cover;
@@ -596,7 +599,11 @@
     let revealedPercent = 0.15;
     let currentPixelSize = 4;
     const targetImg = new Image();
-    targetImg.crossOrigin = "anonymous";
+    
+    // FIX 2: Removed crossOrigin assignment. 
+    // Setting this to 'anonymous' when the server (Wikia) doesn't support CORS causes the image to fail completely.
+    // By removing it, the image loads opaquely (tainted) which is fine for display on canvas.
+    // targetImg.crossOrigin = "anonymous"; 
 
     window.switchMode = (mode) => {
         activeMode = mode;
@@ -639,6 +646,21 @@
     }
 
     targetImg.onload = () => { if (activeMode === 'pixel') drawPixelated(); };
+    
+    // Add error handling to debug if images are still blocked
+    targetImg.onerror = () => {
+        console.error("Image failed to load. Check console for 403 Forbidden errors.");
+        // Optional: Draw a fallback text on canvas if image fails
+        if(activeMode === 'pixel') {
+             const canvas = document.getElementById('pixel-canvas');
+             const ctx = canvas.getContext('2d');
+             ctx.fillStyle = "#333";
+             ctx.fillRect(0,0, canvas.width, canvas.height);
+             ctx.fillStyle = "#fff";
+             ctx.font = "10px Arial";
+             ctx.fillText("Image Error", 10, 50);
+        }
+    };
 
     function drawPixelated() {
         const canvas = document.getElementById('pixel-canvas');
@@ -683,7 +705,7 @@
         const row = document.createElement('div');
         row.className = 'guess-row';
         row.innerHTML = `
-            <div class="attr-tile"><img src="${guess.image}"></div>
+            <div class="attr-tile"><img src="${guess.image}" onerror="this.src='https://placehold.co/40?text=Error'"></div>
             <div class="attr-tile ${guess.rarity === target.rarity ? 'correct' : 'wrong'}">${guess.rarity}</div>
             <div class="attr-tile ${guess.type === target.type ? 'correct' : 'wrong'}">${guess.type}</div>
             <div class="attr-tile ${guess.range === target.range ? 'correct' : 'wrong'}">${guess.range}</div>
