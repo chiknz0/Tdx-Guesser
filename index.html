@@ -17,8 +17,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TDX Guessr - Tower Guessing Game</title>
     
-    <!-- Updated High Quality Favicon -->
-    <link rel="icon" type="image/png" href="https://i.postimg.cc/Sj6mc3GZ/unnamed.png">
+    <!-- Using Local Asset for Favicon -->
+    <link rel="icon" type="image/png" href="assets/logo.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -26,8 +26,9 @@
         
         body {
             font-family: 'Fredoka', sans-serif;
+            /* Using Local Asset for Background with Fallback Color */
             background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.65)), 
-                        url('https://i.postimg.cc/HLxVCWzc/maxresdefault.jpg');
+                        url('assets/background.jpg'), #1a1a1a;
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -39,14 +40,12 @@
             overflow-y: auto;
             margin: 0;
             padding: 1rem;
-            /* Base font size reduced for 1.5x smaller feel */
             font-size: 0.75rem;
         }
 
-        /* 1.5x Smaller UI Wrapper */
         .game-wrapper {
             width: 100%;
-            max-width: 320px; /* Reduced from 380px/400px */
+            max-width: 320px;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
@@ -102,7 +101,7 @@
             justify-content: center;
             border-radius: 4px;
             text-align: center;
-            font-size: 0.45rem; /* Smaller text */
+            font-size: 0.45rem;
             font-weight: bold;
             line-height: 1;
             text-shadow: 1px 1px 1px rgba(0,0,0,0.7);
@@ -154,14 +153,12 @@
 </head>
 <body onclick="startAudio()">
 
-    <!-- Audio Settings (Smaller) -->
     <div class="fixed top-2 left-2 z-50">
         <button onclick="toggleMusic()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition shadow-xl">
             <span id="musicIcon" class="text-lg">🔇</span>
         </button>
     </div>
 
-    <!-- Stats (Smaller) -->
     <div class="fixed top-2 right-2 flex flex-col gap-1.5 z-50">
         <button class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition shadow-xl">
             <span class="text-xl">🏆</span>
@@ -174,9 +171,10 @@
 
     <div class="game-wrapper">
         <div class="flex flex-col items-center mb-1">
-            <!-- Branding renamed to TDX Guessr -->
-            <img src="https://i.postimg.cc/Sj6mc3GZ/unnamed.png" 
+            <!-- Using Local Asset for Main Logo -->
+            <img src="assets/logo.png" 
                  alt="TDX Guessr Logo" 
+                 onerror="this.src='https://i.postimg.cc/Sj6mc3GZ/unnamed.png'"
                  class="w-full max-h-24 object-contain drop-shadow-2xl">
         </div>
 
@@ -281,6 +279,7 @@
     </template>
 
     <script>
+        // ... (Towers array remains unchanged)
         const towers = [
             { name: "Ranger", range: "Medium", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/61/RangerNew.png", desc: "Starter Tower, Shoots Basic Rifle", emojis: ["🔫", "🌲", "🎯", "🚶"] },
             { name: "Shotgunner", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/5/56/ShotgunnerBase.png", desc: "Uses a shotgun", emojis: ["🐚", "🔥", "💨", "🛡️"] },
@@ -337,6 +336,7 @@
 
         function getSafeImageUrl(originalUrl) {
             if (!originalUrl) return "https://img.icons8.com/color/96/question-mark.png";
+            // Check if wikia - use weserv proxy to avoid CORS/Hotlink blocks
             if (originalUrl.includes('wikia.nocookie.net')) {
                 const cleanUrl = originalUrl.split('/revision')[0];
                 return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
