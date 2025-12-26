@@ -17,7 +17,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TDX Guessr - Tower Guessing Game</title>
     
-    <!-- Using Local Asset for Favicon -->
     <link rel="icon" type="image/png" href="assets/logo.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,9 +25,10 @@
         
         body {
             font-family: 'Fredoka', sans-serif;
-            /* Using Local Asset for Background with Fallback Color */
-            background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.65)), 
-                        url('assets/background.jpg'), #1a1a1a;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)), 
+                        url('https://i.postimg.cc/HLxVCWzc/maxresdefault.jpg'),
+                        url('assets/background.jpg.jpg'),
+                        #121212;
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -45,7 +45,7 @@
 
         .game-wrapper {
             width: 100%;
-            max-width: 320px;
+            max-width: 340px;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
@@ -53,43 +53,43 @@
         }
 
         .glass-box {
-            background: rgba(10, 10, 10, 0.88);
-            backdrop-filter: blur(14px);
-            border: 2px solid rgba(255, 255, 255, 0.08);
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             padding: 0.6rem;
         }
 
         .mode-btn {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             filter: grayscale(100%);
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: pointer;
         }
 
         .mode-btn.active {
             filter: grayscale(0%);
             opacity: 1;
-            transform: scale(1.03);
+            transform: scale(1.05);
             border-bottom: 2px solid #fbbf24;
         }
 
         .pixel-container {
-            width: 110px;
-            height: 110px;
+            width: 120px;
+            height: 120px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #111;
-            border-radius: 10px;
-            border: 2px solid #333;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid #333;
         }
 
         #pixelCanvas {
-            width: 100%;
-            height: 100%;
+            width: 120px;
+            height: 120px;
             image-rendering: pixelated;
         }
 
@@ -103,8 +103,6 @@
             text-align: center;
             font-size: 0.45rem;
             font-weight: bold;
-            line-height: 1;
-            text-shadow: 1px 1px 1px rgba(0,0,0,0.7);
             padding: 2px;
         }
 
@@ -135,35 +133,43 @@
             color: white;
             padding: 8px 16px;
             border-radius: 20px;
-            font-weight: bold;
             font-size: 0.7rem;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
             z-index: 100;
         }
 
-        .social-link {
-            transition: all 0.2s ease;
-            text-align: center;
+        .btn-discord {
+            background-color: #5865F2;
+            color: white;
+            transition: background-color 0.2s;
         }
-        .social-link:hover {
-            transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.1);
+        .btn-discord:hover {
+            background-color: #4752c4;
+        }
+        .btn-donate {
+            background-color: #FFDD00;
+            color: #000000;
+            transition: background-color 0.2s;
+        }
+        .btn-donate:hover {
+            background-color: #e6c700;
         }
     </style>
 </head>
 <body onclick="startAudio()">
 
+    <!-- Audio Controls -->
     <div class="fixed top-2 left-2 z-50">
-        <button onclick="toggleMusic()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition shadow-xl">
+        <button onclick="toggleMusic()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition">
             <span id="musicIcon" class="text-lg">🔇</span>
         </button>
     </div>
 
+    <!-- Stats -->
     <div class="fixed top-2 right-2 flex flex-col gap-1.5 z-50">
-        <button class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition shadow-xl">
+        <button class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition">
             <span class="text-xl">🏆</span>
         </button>
-        <button class="glass-box !p-0 flex flex-col items-center justify-center !w-10 !h-10 hover:bg-gray-800 transition shadow-xl">
+        <button class="glass-box !p-0 flex flex-col items-center justify-center !w-10 !h-10 hover:bg-gray-800 transition">
             <span class="text-lg">🔥</span>
             <span id="streakCount" class="text-[8px] font-black -mt-1">0</span>
         </button>
@@ -171,13 +177,13 @@
 
     <div class="game-wrapper">
         <div class="flex flex-col items-center mb-1">
-            <!-- Using Local Asset for Main Logo -->
             <img src="assets/logo.png" 
                  alt="TDX Guessr Logo" 
                  onerror="this.src='https://i.postimg.cc/Sj6mc3GZ/unnamed.png'"
-                 class="w-full max-h-24 object-contain drop-shadow-2xl">
+                 class="w-full max-h-24 object-contain">
         </div>
 
+        <!-- Mode Selector -->
         <div class="glass-box">
             <div class="grid grid-cols-4 gap-1.5">
                 <button onclick="changeMode('classic')" id="mode-classic" class="mode-btn active flex flex-col items-center">
@@ -199,16 +205,17 @@
             </div>
 
             <div class="mt-2 px-1">
-                <div class="flex justify-between text-[8px] mb-1 text-gray-400 font-bold tracking-wider">
-                    <span>DAILY COMPLETION</span>
+                <div class="flex justify-between text-[8px] mb-1 text-gray-400 font-bold">
+                    <span>DAILY PROGRESS</span>
                     <span id="progressPercent">0%</span>
                 </div>
-                <div class="w-full bg-gray-900 h-1.5 rounded-full overflow-hidden border border-white/5">
-                    <div id="progressBar" class="bg-gradient-to-r from-yellow-600 to-yellow-300 h-full w-0 transition-all duration-700 ease-out"></div>
+                <div class="w-full bg-gray-900 h-1 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-yellow-500 h-full w-0 transition-all duration-500"></div>
                 </div>
             </div>
         </div>
 
+        <!-- Game Area -->
         <div class="glass-box flex flex-col items-center">
             <div id="displayArea" class="w-full min-h-[140px] flex flex-col items-center justify-center">
                 
@@ -219,57 +226,57 @@
                     <div class="mt-2">
                         <label class="inline-flex items-center cursor-pointer group">
                             <input type="checkbox" id="hardModeToggle" class="sr-only peer">
-                            <div class="relative w-7 h-3.5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-orange-600"></div>
+                            <div class="relative w-7 h-3.5 bg-gray-700 rounded-full peer peer-checked:bg-orange-600"></div>
                             <span class="ms-2 text-[8px] font-bold text-gray-400 uppercase group-hover:text-white transition">Hard Mode</span>
                         </label>
                     </div>
                 </div>
 
                 <div id="emojiDisplay" class="hidden text-center">
-                    <div id="emojiSlots" class="flex gap-1.5 text-2xl bg-black/50 p-3 rounded-xl border border-white/10 shadow-inner"></div>
+                    <div id="emojiSlots" class="flex gap-1.5 text-2xl bg-black/50 p-3 rounded-lg"></div>
                 </div>
 
-                <div id="descriptionDisplay" class="hidden text-center p-3 bg-black/40 rounded-xl w-full border border-white/5 min-h-[60px] flex items-center justify-center">
-                    <p id="descText" class="text-[10px] leading-relaxed italic text-yellow-50 font-medium"></p>
+                <div id="descriptionDisplay" class="hidden text-center p-3 bg-black/40 rounded-lg w-full">
+                    <p id="descText" class="text-[10px] italic text-yellow-50"></p>
                 </div>
 
                 <div id="classicDisplay" class="text-center p-2">
-                    <h3 class="text-lg mb-1 text-yellow-400 uppercase font-black tracking-tight">Identity Unknown</h3>
-                    <p class="text-gray-400 text-[9px] uppercase font-bold opacity-70">Compare tower stats to win</p>
+                    <h3 class="text-lg mb-1 text-yellow-400 uppercase font-black">Unknown Tower</h3>
+                    <p class="text-gray-400 text-[9px] uppercase">Submit guesses to see stats</p>
                 </div>
             </div>
 
             <div id="interactionSection" class="w-full relative mt-2">
-                <input type="text" id="guessInput" placeholder="Enter tower name..." autocomplete="off"
-                       class="w-full bg-black/50 border-2 border-white/10 rounded-lg p-2 text-sm focus:border-yellow-500 focus:bg-black/70 outline-none transition-all placeholder:text-gray-600 text-white shadow-lg">
-                <div id="suggestions" class="absolute bottom-full left-0 w-full glass-box mb-2 max-h-40 overflow-y-auto hidden z-50 !p-0.5 border-yellow-500/50"></div>
+                <input type="text" id="guessInput" placeholder="Guess a tower..." autocomplete="off"
+                       class="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-sm focus:border-yellow-500 outline-none text-white">
+                <div id="suggestions" class="absolute bottom-full left-0 w-full glass-box mb-2 max-h-40 overflow-y-auto hidden z-50 !p-1"></div>
             </div>
 
             <div id="winControls" class="hidden w-full mt-2 flex flex-col gap-1.5">
-                <button onclick="resetGame()" class="w-full bg-green-600 hover:bg-green-500 p-2 rounded-lg font-black text-xs shadow-xl transition-all transform hover:scale-[1.01]">PLAY AGAIN</button>
-                <button onclick="shareResults()" class="w-full bg-blue-700 hover:bg-blue-600 p-1.5 rounded-lg font-bold text-[10px] flex items-center justify-center gap-1.5 transition-all">
-                    <span>SHARE RESULTS</span>
-                    <img src="https://img.icons8.com/material-outlined/16/FFFFFF/share.png" class="w-3 h-3">
+                <button onclick="resetGame()" class="w-full bg-green-600 hover:bg-green-500 p-2 rounded-lg font-black text-xs">PLAY AGAIN</button>
+                <button onclick="shareResults()" class="w-full bg-blue-700 hover:bg-blue-600 p-1.5 rounded-lg font-bold text-[10px] flex items-center justify-center gap-1">
+                    SHARE
                 </button>
             </div>
 
             <div id="guessHistory" class="w-full mt-3 space-y-1"></div>
         </div>
 
+        <!-- Support Buttons -->
         <div class="flex gap-1.5 w-full">
-            <a href="https://discord.gg/r7JXFmk8Ku" target="_blank" class="social-link glass-box flex-1 !flex items-center justify-center gap-1.5 !py-2 border-indigo-500/30">
-                <img src="https://img.icons8.com/ios-filled/50/FFFFFF/discord-logo.png" class="w-3 h-3">
-                <span class="text-[8px] font-black uppercase tracking-widest">Discord</span>
+            <a href="https://discord.gg/r7JXFmk8Ku" target="_blank" class="btn-discord flex-1 flex items-center justify-center gap-2 py-2 rounded-lg shadow-lg">
+                <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="white"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.71,32.65-1.82,56.6.48,80.21a105.73,105.73,0,0,0,32.22,16.15,77.7,77.7,0,0,0,7.37-12,67.65,67.65,0,0,1-11.9-5.69c.97-.69,1.93-1.39,2.85-2.12a74.22,74.22,0,0,0,65.29,0c.92.73,1.88,1.43,2.85,2.12a67.4,67.4,0,0,1-11.9,5.69,77,77,0,0,0,7.37,12,105.45,105.45,0,0,0,32.27-16.15C130.39,52.3,124.09,28.52,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5.07-12.72,11.45-12.72,11.55,5.74,11.45,12.72S48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5.07-12.72,11.44-12.72,11.55,5.74,11.45,12.72S91,65.69,84.69,65.69Z"/></svg>
+                <span class="text-[9px] font-black uppercase">Discord</span>
             </a>
-            <a href="https://buymeacoffee.com/tdxguesser" target="_blank" class="social-link glass-box flex-1 !flex items-center justify-center gap-1.5 !py-2 border-yellow-500/30">
-                <span class="text-xs leading-none">💰</span>
-                <span class="text-[8px] font-black uppercase tracking-widest">Donate</span>
+            <a href="https://buymeacoffee.com/tdxguesser" target="_blank" class="btn-donate flex-1 flex items-center justify-center gap-2 py-2 rounded-lg shadow-lg">
+                <img src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg" alt="BMC" class="w-3">
+                <span class="text-[9px] font-black uppercase">Donate</span>
             </a>
         </div>
     </div>
 
     <template id="headerTemplate">
-        <div id="classicHeader" class="grid grid-cols-5 gap-0.5 mb-1 text-[7px] text-center text-gray-400 font-black uppercase tracking-tighter">
+        <div id="classicHeader" class="grid grid-cols-5 gap-0.5 mb-1 text-[7px] text-center text-gray-500 font-bold">
             <div>NAME</div>
             <div>RANGE</div>
             <div>RARITY</div>
@@ -279,7 +286,6 @@
     </template>
 
     <script>
-        // ... (Towers array remains unchanged)
         const towers = [
             { name: "Ranger", range: "Medium", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/61/RangerNew.png", desc: "Starter Tower, Shoots Basic Rifle", emojis: ["🔫", "🌲", "🎯", "🚶"] },
             { name: "Shotgunner", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/5/56/ShotgunnerBase.png", desc: "Uses a shotgun", emojis: ["🐚", "🔥", "💨", "🛡️"] },
@@ -334,33 +340,32 @@
             { name: "Shock Trooper", range: "Long", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/6d/ShockTrooper0.png", desc: "Shocks crowds of enemies", emojis: ["⚡", "☁️", "🪖", "💥"] }
         ];
 
-        function getSafeImageUrl(originalUrl) {
-            if (!originalUrl) return "https://img.icons8.com/color/96/question-mark.png";
-            // Check if wikia - use weserv proxy to avoid CORS/Hotlink blocks
-            if (originalUrl.includes('wikia.nocookie.net')) {
-                const cleanUrl = originalUrl.split('/revision')[0];
-                return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
-            }
-            return originalUrl;
-        }
-
         let currentMode = 'classic';
         let targetTower = null;
         let guesses = [];
         let winState = false;
-        let pixelDim = 2; 
+        let pixelScale = 2; 
         let visibleEmojis = 1;
         let dailyProgress = { classic: false, pixel: false, emoji: false, description: false };
         let imgObj = new Image();
 
         const bgMusic = new Audio('https://www.mboxdrive.com/TDX_Theme.mp3'); 
         bgMusic.loop = true;
-        bgMusic.volume = 0.25;
+        bgMusic.volume = 0.2;
         const clickSound = new Audio('https://www.soundjay.com/buttons/button-16.mp3');
         const winSound = new Audio('https://www.soundjay.com/human/applause-01.mp3');
         
         let audioStarted = false;
         let isMuted = true;
+
+        function getSafeImageUrl(originalUrl) {
+            if (!originalUrl) return "https://img.icons8.com/color/96/question-mark.png";
+            if (originalUrl.includes('wikia.nocookie.net')) {
+                const cleanUrl = originalUrl.split('/revision')[0];
+                return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
+            }
+            return originalUrl;
+        }
 
         function startAudio() {
             if (!audioStarted) {
@@ -383,12 +388,14 @@
         }
 
         function playClick() {
-            clickSound.currentTime = 0;
-            clickSound.play().catch(() => {});
+            if (clickSound) {
+                clickSound.currentTime = 0;
+                clickSound.play().catch(() => {});
+            }
         }
 
         function initGame() {
-            const saved = JSON.parse(localStorage.getItem('tdx_daily_v19'));
+            const saved = JSON.parse(localStorage.getItem('tdx_daily_v20'));
             if(saved) dailyProgress = saved;
             updateProgressBar();
             
@@ -399,10 +406,12 @@
             });
             
             const hardToggle = document.getElementById('hardModeToggle');
-            hardToggle.addEventListener('change', () => {
-                playClick();
-                updateDisplay();
-            });
+            if (hardToggle) {
+                hardToggle.addEventListener('change', () => {
+                    playClick();
+                    updateDisplay();
+                });
+            }
 
             changeMode('classic');
         }
@@ -411,12 +420,15 @@
             playClick();
             currentMode = mode;
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('mode-' + mode).classList.add('active');
+            const modeBtn = document.getElementById('mode-' + mode);
+            if (modeBtn) modeBtn.classList.add('active');
             
             ['pixelDisplay', 'emojiDisplay', 'descriptionDisplay', 'classicDisplay'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
             });
-            document.getElementById(mode + 'Display').classList.remove('hidden');
+            const activeDisplay = document.getElementById(mode + 'Display');
+            if (activeDisplay) activeDisplay.classList.remove('hidden');
 
             resetGame();
         }
@@ -424,7 +436,7 @@
         function resetGame() {
             guesses = [];
             winState = false;
-            pixelDim = 2; 
+            pixelScale = 2; 
             visibleEmojis = 1;
             targetTower = towers[Math.floor(Math.random() * towers.length)];
             
@@ -440,18 +452,13 @@
             }
             
             if(currentMode === 'pixel') {
-                const canvas = document.getElementById('pixelCanvas');
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = "#111";
-                ctx.fillRect(0, 0, 120, 120);
-
                 imgObj = new Image();
                 imgObj.crossOrigin = "anonymous";
                 imgObj.src = getSafeImageUrl(targetTower.img);
+                imgObj.onload = () => updateDisplay();
                 imgObj.onerror = () => {
                     imgObj.src = "https://img.icons8.com/color/96/question-mark.png";
                 };
-                imgObj.onload = () => setTimeout(updateDisplay, 100);
             } else {
                 updateDisplay();
             }
@@ -461,29 +468,28 @@
             if(currentMode === 'pixel' && imgObj.complete) {
                 const canvas = document.getElementById('pixelCanvas');
                 const ctx = canvas.getContext('2d');
-                const dim = winState ? 120 : pixelDim;
                 
-                ctx.clearRect(0, 0, 120, 120);
+                // Use a larger canvas size to avoid the "single pixel" center crop
+                // Dim is the size of the pixel grid (e.g., 2x2, 4x4, etc)
+                const dim = winState ? 120 : pixelScale;
                 
+                // Create an offscreen buffer to draw the low-res version
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = dim; 
+                tempCanvas.width = dim;
                 tempCanvas.height = dim;
                 const tempCtx = tempCanvas.getContext('2d');
                 
-                if(document.getElementById('hardModeToggle').checked && !winState) {
+                const hardToggle = document.getElementById('hardModeToggle');
+                if(hardToggle && hardToggle.checked && !winState) {
                     tempCtx.filter = 'grayscale(100%) contrast(150%) brightness(80%)';
                 }
-                
-                const w = imgObj.width || 120;
-                const h = imgObj.height || 120;
-                const sampleW = w * 0.7;
-                const sampleH = h * 0.7;
-                const sx = (w - sampleW) / 2;
-                const sy = (h - sampleH) * 0.8; 
 
-                tempCtx.drawImage(imgObj, sx, sy, sampleW, sampleH, 0, 0, dim, dim);
+                // Draw image onto the small canvas, covering the whole area
+                tempCtx.drawImage(imgObj, 0, 0, dim, dim);
                 
+                // Upscale back to the main canvas
                 ctx.imageSmoothingEnabled = false;
+                ctx.clearRect(0, 0, 120, 120);
                 ctx.drawImage(tempCanvas, 0, 0, dim, dim, 0, 0, 120, 120);
             } else if(currentMode === 'emoji') {
                 document.getElementById('emojiSlots').innerHTML = targetTower.emojis.map((e, i) => 
@@ -494,7 +500,7 @@
                 const revealCount = winState ? words.length : Math.max(1, guesses.length);
                 document.getElementById('descText').innerHTML = words.map((w, i) => {
                     if (i < revealCount) return w;
-                    return `<span class="opacity-30 font-mono tracking-widest">${w.replace(/[a-zA-Z]/g, '_')}</span>`;
+                    return '_'.repeat(w.length);
                 }).join(' ');
             }
         }
@@ -512,7 +518,8 @@
             if(guess.name === targetTower.name) {
                 winGame();
             } else {
-                pixelDim = Math.min(120, pixelDim * 2); 
+                // Double resolution with each wrong guess
+                pixelScale = Math.min(120, pixelScale * 2); 
                 visibleEmojis = Math.min(4, visibleEmojis + 1);
             }
 
@@ -534,7 +541,8 @@
                     <div class="stat-square ${guess.loc === targetTower.loc ? 'correct' : 'incorrect'}">${guess.loc}</div>
                 `;
                 const header = document.getElementById('classicHeader');
-                container.insertBefore(row, header.nextSibling);
+                if (header) container.insertBefore(row, header.nextSibling);
+                else container.appendChild(row);
             } else {
                 const isCorrect = guess.name === targetTower.name;
                 row.className = `flex items-center gap-2 glass-box !p-1.5 ${isCorrect ? 'correct' : 'incorrect'} border-2 animate-reveal`;
@@ -545,39 +553,35 @@
 
         function winGame() {
             winState = true;
-            winSound.play().catch(() => {});
+            if (winSound) winSound.play().catch(() => {});
             document.getElementById('guessInput').disabled = true;
             document.getElementById('interactionSection').classList.add('hidden');
             document.getElementById('winControls').classList.remove('hidden');
             
             dailyProgress[currentMode] = true;
-            localStorage.setItem('tdx_daily_v19', JSON.stringify(dailyProgress));
+            localStorage.setItem('tdx_daily_v20', JSON.stringify(dailyProgress));
             updateProgressBar();
             updateDisplay();
         }
 
         function shareResults() {
-            playClick();
-            const text = `TDX Guessr: ${guesses.length} attempts! ✅\nMode: ${currentMode.toUpperCase()}\nPlay here: TDXGuessr.com`;
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-
-            const toast = document.createElement('div');
-            toast.className = 'share-toast';
-            toast.innerText = 'Copied to clipboard!';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
+            const text = `TDX Guessr: ${guesses.length} attempts! ✅\nMode: ${currentMode.toUpperCase()}`;
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.createElement('div');
+                toast.className = 'share-toast';
+                toast.innerText = 'Copied to clipboard!';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+            });
         }
 
         function updateProgressBar() {
             const won = Object.values(dailyProgress).filter(v => v).length;
             const percent = (won / 4) * 100;
-            document.getElementById('progressBar').style.width = percent + '%';
-            document.getElementById('progressPercent').innerText = Math.round(percent) + '%';
+            const bar = document.getElementById('progressBar');
+            const label = document.getElementById('progressPercent');
+            if (bar) bar.style.width = percent + '%';
+            if (label) label.innerText = Math.round(percent) + '%';
         }
 
         function showSuggestions(e) {
@@ -587,9 +591,9 @@
             const matches = towers.filter(t => t.name.toLowerCase().includes(val));
             if(matches.length > 0) {
                 suggCont.innerHTML = matches.map(m => `
-                    <div class="suggestion-item p-2 cursor-pointer flex items-center gap-2 transition-all border-b border-white/5 last:border-0" onclick="handleGuess('${m.name}')">
-                        <img src="${getSafeImageUrl(m.img)}" class="w-6 h-6 rounded bg-black/60 shadow" onerror="this.src='https://img.icons8.com/color/48/question-mark.png'">
-                        <span class="text-[9px] font-black uppercase tracking-wide">${m.name}</span>
+                    <div class="suggestion-item p-1.5 cursor-pointer flex items-center gap-2" onclick="handleGuess('${m.name}')">
+                        <img src="${getSafeImageUrl(m.img)}" class="w-5 h-5 rounded" onerror="this.src='https://img.icons8.com/color/48/question-mark.png'">
+                        <span class="text-[8px] font-bold uppercase">${m.name}</span>
                     </div>`).join('');
                 suggCont.classList.remove('hidden');
             } else suggCont.classList.add('hidden');
