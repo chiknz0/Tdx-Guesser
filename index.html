@@ -1,10 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google AdSense Verification -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2761094953116204" crossorigin="anonymous"></script>
-
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-0PBBF2HHSL"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -16,10 +13,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TDX Guessr - Tower Guessing Game</title>
-    
+    <meta name="description" content="The best TDX guessing game. Test your knowledge of towers, rarities, and descriptions in this ultimate fan-made challenge.">
     <link rel="icon" type="image/png" href="assets/logo.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@700&display=swap');
         
@@ -85,6 +84,7 @@
             background: #000;
             border-radius: 8px;
             border: 1px solid #333;
+            position: relative;
         }
 
         #pixelCanvas {
@@ -93,27 +93,45 @@
             image-rendering: pixelated;
         }
 
-        .stat-square {
-            width: 100%;
-            aspect-ratio: 1/1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 0.45rem;
-            font-weight: bold;
-            padding: 2px;
-        }
-
         .correct { background-color: #16a34a !important; border: 1px solid #22c55e; }
         .incorrect { background-color: #991b1b !important; border: 1px solid #ef4444; }
+        .neutral { background-color: #3f3f46 !important; border: 1px solid #71717a; }
         
         .suggestion-item:hover { background-color: #1d4ed8; }
         
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+        .btn-discord { background-color: #5865F2; color: white; transition: background-color 0.2s; }
+        .btn-discord:hover { background-color: #4752c4; }
+        .btn-donate { background-color: #FFDD00; color: #000000; transition: background-color 0.2s; }
+        .btn-donate:hover { background-color: #e6c700; }
+        
+        .auth-input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            width: 100%;
+            margin-bottom: 8px;
+            font-size: 0.7rem;
+        }
+
+        .pfp-preview {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fbbf24;
+            margin: 0 auto 10px;
+        }
+
+        .action-icon-btn {
+            background: rgba(0,0,0,0.6);
+            padding: 4px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
 
         .animate-reveal {
             animation: reveal 0.2s ease-out forwards;
@@ -123,67 +141,123 @@
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        .share-toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #2563eb;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            z-index: 100;
-        }
-
-        .btn-discord {
-            background-color: #5865F2;
-            color: white;
-            transition: background-color 0.2s;
-        }
-        .btn-discord:hover {
-            background-color: #4752c4;
-        }
-        .btn-donate {
-            background-color: #FFDD00;
-            color: #000000;
-            transition: background-color 0.2s;
-        }
-        .btn-donate:hover {
-            background-color: #e6c700;
-        }
     </style>
 </head>
 <body onclick="startAudio()">
 
-    <!-- Audio Controls -->
-    <div class="fixed top-2 left-2 z-50">
-        <button onclick="toggleMusic()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition">
-            <span id="musicIcon" class="text-lg">🔇</span>
-        </button>
+    <!-- Audio & Version Controls -->
+    <div class="fixed top-2 left-2 z-50 flex flex-col gap-1.5">
+        <div class="flex gap-1.5">
+            <button onclick="toggleMusic()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition">
+                <span id="musicIcon" class="text-lg">🔇</span>
+            </button>
+            <button onclick="toggleUpdateLog()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition">
+                <span class="text-lg">📜</span>
+            </button>
+        </div>
+        <div class="glass-box !py-1 !px-2 opacity-50 w-fit">
+            <span class="text-[8px] font-black uppercase tracking-tighter">Version 3.0</span>
+        </div>
     </div>
 
-    <!-- Stats -->
+    <!-- Stats and Profile -->
     <div class="fixed top-2 right-2 flex flex-col gap-1.5 z-50">
-        <button class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition">
+        <button onclick="openAuth()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition" title="Profile">
+            <span class="text-xl">👤</span>
+        </button>
+        <button onclick="toggleLeaderboard()" class="glass-box !p-0 !w-10 !h-10 flex items-center justify-center hover:bg-gray-800 transition" title="Leaderboard">
             <span class="text-xl">🏆</span>
         </button>
-        <button class="glass-box !p-0 flex flex-col items-center justify-center !w-10 !h-10 hover:bg-gray-800 transition">
+        <button onclick="toggleLeaderboard()" class="glass-box !p-0 flex flex-col items-center justify-center !w-10 !h-10 hover:bg-gray-800 transition" title="Your Streak">
             <span class="text-lg">🔥</span>
             <span id="streakCount" class="text-[8px] font-black -mt-1">0</span>
         </button>
     </div>
 
+    <!-- Update Log Modal -->
+    <div id="updateModal" class="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-4 hidden">
+        <div class="glass-box w-full max-w-[280px]">
+            <h2 class="text-yellow-500 font-black uppercase text-sm mb-3">Update Log (v3)</h2>
+            <ul class="text-[9px] text-gray-300 space-y-2 uppercase list-disc list-inside">
+                <li>Discord Login Support</li>
+                <li>Fixed Profile Picture Sync</li>
+                <li>Menu now auto-closes after login</li>
+                <li>Added Versioning and Logs</li>
+                <li>Username length protection</li>
+            </ul>
+            <button onclick="toggleUpdateLog()" class="mt-4 w-full bg-yellow-500 text-black font-black py-2 rounded-lg text-xs uppercase">Dismiss</button>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 hidden">
+        <div class="glass-box w-full max-w-[280px] text-center">
+            <h2 class="text-yellow-500 font-black uppercase text-sm mb-4">Account Access</h2>
+            
+            <div id="authForm">
+                <input type="text" id="authUsername" placeholder="Username" class="auth-input">
+                <input type="password" id="authPass" placeholder="Password" class="auth-input">
+                
+                <div id="signupFields" class="hidden">
+                    <input type="text" id="authPfp" placeholder="PFP Image URL (optional)" class="auth-input">
+                    <p class="text-[7px] text-gray-500 mb-2 uppercase">NSFW profile pictures will lead to a ban.</p>
+                </div>
+                
+                <div class="flex flex-col gap-2 mt-2">
+                    <button id="mainAuthBtn" onclick="handleAuth()" class="bg-yellow-500 text-black font-black py-2 rounded-lg text-xs uppercase">Sign In</button>
+                    <button onclick="loginWithDiscord()" class="bg-[#5865F2] text-white font-black py-2 rounded-lg text-xs uppercase flex items-center justify-center gap-2">
+                        <img src="https://img.icons8.com/ios-filled/50/ffffff/discord-logo.png" class="w-3 h-3"> Continue with Discord
+                    </button>
+                    <button id="toggleAuthMode" onclick="toggleAuthUI()" class="text-gray-400 font-bold py-1 text-[9px] uppercase hover:text-white">Need an account? Sign Up</button>
+                </div>
+            </div>
+
+            <!-- Username selection for OAuth users -->
+            <div id="setUsernameSection" class="hidden py-2">
+                <p class="text-[9px] text-gray-400 mb-2 uppercase">Choose a username to finish setup</p>
+                <input type="text" id="newOauthUsername" placeholder="Username" class="auth-input">
+                <button onclick="finalizeOauthName()" class="w-full bg-yellow-500 text-black font-black py-2 rounded-lg text-xs uppercase">Save Username</button>
+            </div>
+            
+            <div id="userInfoSection" class="hidden py-2">
+                <img id="profilePfp" src="" class="pfp-preview">
+                <p id="profileUserDisplay" class="text-sm font-black text-yellow-500 mb-1"></p>
+                <p id="profileStreakDisplay" class="text-[10px] text-gray-400 mb-4 uppercase"></p>
+                
+                <div class="mb-4">
+                    <input type="text" id="updatePfpUrl" placeholder="New PFP Image URL" class="auth-input !mb-1 !text-[9px]">
+                    <button onclick="updatePfp()" class="text-[8px] text-yellow-500 font-bold uppercase hover:underline">Change PFP</button>
+                </div>
+
+                <button onclick="handleSignOut()" class="bg-red-900/40 text-red-400 border border-red-900 font-bold py-2 px-4 rounded-lg text-[10px] uppercase">Sign Out</button>
+            </div>
+
+            <button onclick="closeAuth()" class="mt-4 text-[8px] text-gray-500 uppercase">Close</button>
+            <p id="authStatus" class="text-[8px] mt-2 text-gray-400 min-h-[1.5em]"></p>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboardModal" class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 hidden">
+        <div class="glass-box w-full max-w-[300px]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-yellow-500 font-black uppercase text-sm">Top Defenders</h2>
+                <button onclick="toggleLeaderboard()" class="text-gray-500">✕</button>
+            </div>
+            <div id="leaderboardList" class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                <p class="text-center text-[10px] text-gray-400">Loading rankings...</p>
+            </div>
+            <div class="mt-4 pt-4 border-t border-white/10 text-center">
+                <button onclick="openAuth()" class="text-[10px] text-yellow-500 font-bold uppercase">View My Profile</button>
+            </div>
+        </div>
+    </div>
+
     <div class="game-wrapper">
         <div class="flex flex-col items-center mb-1">
-            <img src="assets/logo.png" 
-                 alt="TDX Guessr Logo" 
-                 onerror="this.src='https://i.postimg.cc/Sj6mc3GZ/unnamed.png'"
-                 class="w-full max-h-24 object-contain">
+            <img src="assets/logo.png" alt="TDX Guessr Logo" onerror="this.src='https://i.postimg.cc/Sj6mc3GZ/unnamed.png'" class="w-full max-h-24 object-contain">
         </div>
 
-        <!-- Mode Selector -->
         <div class="glass-box">
             <div class="grid grid-cols-4 gap-1.5">
                 <button onclick="changeMode('classic')" id="mode-classic" class="mode-btn active flex flex-col items-center">
@@ -215,34 +289,39 @@
             </div>
         </div>
 
-        <!-- Game Area -->
         <div class="glass-box flex flex-col items-center">
             <div id="displayArea" class="w-full min-h-[140px] flex flex-col items-center justify-center">
-                
-                <div id="pixelDisplay" class="hidden text-center">
-                    <div class="pixel-container mx-auto shadow-inner">
+                <div id="pixelDisplay" class="hidden text-center relative w-full">
+                    <div class="pixel-container mx-auto shadow-inner relative group">
                         <canvas id="pixelCanvas" width="120" height="120"></canvas>
-                    </div>
-                    <div class="mt-2">
-                        <label class="inline-flex items-center cursor-pointer group">
-                            <input type="checkbox" id="hardModeToggle" class="sr-only peer">
-                            <div class="relative w-7 h-3.5 bg-gray-700 rounded-full peer peer-checked:bg-orange-600"></div>
-                            <span class="ms-2 text-[8px] font-bold text-gray-400 uppercase group-hover:text-white transition">Hard Mode</span>
-                        </label>
+                        <button onclick="refreshTower()" class="absolute top-1 right-1 action-icon-btn opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="text-[10px]">🔄</span>
+                        </button>
                     </div>
                 </div>
 
-                <div id="emojiDisplay" class="hidden text-center">
-                    <div id="emojiSlots" class="flex gap-1.5 text-2xl bg-black/50 p-3 rounded-lg"></div>
+                <div id="emojiDisplay" class="hidden text-center w-full">
+                    <div class="flex items-center justify-center gap-2">
+                        <div id="emojiSlots" class="flex gap-1.5 text-2xl bg-black/50 p-3 rounded-lg min-h-[50px] min-w-[120px] justify-center items-center"></div>
+                        <button onclick="refreshTower()" class="action-icon-btn">
+                            <span class="text-[12px]">🔄</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div id="descriptionDisplay" class="hidden text-center p-3 bg-black/40 rounded-lg w-full">
+                <div id="descriptionDisplay" class="hidden text-center p-3 bg-black/40 rounded-lg w-full relative group">
                     <p id="descText" class="text-[10px] italic text-yellow-50"></p>
+                    <button onclick="refreshTower()" class="absolute top-1 right-1 action-icon-btn opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span class="text-[10px]">🔄</span>
+                    </button>
                 </div>
 
-                <div id="classicDisplay" class="text-center p-2">
+                <div id="classicDisplay" class="text-center p-2 relative group w-full">
                     <h3 class="text-lg mb-1 text-yellow-400 uppercase font-black">Unknown Tower</h3>
                     <p class="text-gray-400 text-[9px] uppercase">Submit guesses to see stats</p>
+                    <button onclick="refreshTower()" class="absolute top-1 right-1 action-icon-btn opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span class="text-[10px]">🔄</span>
+                    </button>
                 </div>
             </div>
 
@@ -250,338 +329,289 @@
                 <input type="text" id="guessInput" placeholder="Guess a tower..." autocomplete="off"
                        class="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-sm focus:border-yellow-500 outline-none text-white">
                 <div id="suggestions" class="absolute bottom-full left-0 w-full glass-box mb-2 max-h-40 overflow-y-auto hidden z-50 !p-1"></div>
+                
+                <button onclick="giveUp()" id="giveUpBtn" class="w-full mt-2 text-[8px] font-bold text-gray-500 uppercase hover:text-red-400 transition-colors py-1">
+                    Give Up? (Reveal Answer)
+                </button>
             </div>
 
             <div id="winControls" class="hidden w-full mt-2 flex flex-col gap-1.5">
-                <button onclick="resetGame()" class="w-full bg-green-600 hover:bg-green-500 p-2 rounded-lg font-black text-xs">PLAY AGAIN</button>
-                <button onclick="shareResults()" class="w-full bg-blue-700 hover:bg-blue-600 p-1.5 rounded-lg font-bold text-[10px] flex items-center justify-center gap-1">
-                    SHARE
-                </button>
+                <div id="winStatusText" class="text-center text-[10px] font-black uppercase mb-1"></div>
+                <button onclick="resetGame()" class="w-full bg-green-600 hover:bg-green-500 p-2 rounded-lg font-black text-xs">NEXT ROUND</button>
             </div>
 
             <div id="guessHistory" class="w-full mt-3 space-y-1"></div>
         </div>
 
-        <!-- Support Buttons -->
         <div class="flex gap-1.5 w-full">
             <a href="https://discord.gg/r7JXFmk8Ku" target="_blank" class="btn-discord flex-1 flex items-center justify-center gap-2 py-2 rounded-lg shadow-lg">
-                <svg width="14" height="14" viewBox="0 0 127.14 96.36" fill="white"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.71,32.65-1.82,56.6.48,80.21a105.73,105.73,0,0,0,32.22,16.15,77.7,77.7,0,0,0,7.37-12,67.65,67.65,0,0,1-11.9-5.69c.97-.69,1.93-1.39,2.85-2.12a74.22,74.22,0,0,0,65.29,0c.92.73,1.88,1.43,2.85,2.12a67.4,67.4,0,0,1-11.9,5.69,77,77,0,0,0,7.37,12,105.45,105.45,0,0,0,32.27-16.15C130.39,52.3,124.09,28.52,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5.07-12.72,11.45-12.72,11.55,5.74,11.45,12.72S48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5.07-12.72,11.44-12.72,11.55,5.74,11.45,12.72S91,65.69,84.69,65.69Z"/></svg>
                 <span class="text-[9px] font-black uppercase">Discord</span>
             </a>
             <a href="https://buymeacoffee.com/tdxguesser" target="_blank" class="btn-donate flex-1 flex items-center justify-center gap-2 py-2 rounded-lg shadow-lg">
-                <img src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg" alt="BMC" class="w-3">
                 <span class="text-[9px] font-black uppercase">Donate</span>
             </a>
         </div>
     </div>
 
-    <template id="headerTemplate">
-        <div id="classicHeader" class="grid grid-cols-5 gap-0.5 mb-1 text-[7px] text-center text-gray-500 font-bold">
-            <div>NAME</div>
-            <div>RANGE</div>
-            <div>RARITY</div>
-            <div>TYPE</div>
-            <div>LOC</div>
-        </div>
-    </template>
-
     <script>
+        const supabaseUrl = 'https://swfgmqyadbtvgolrgbix.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3ZmdtcXlhZGJ0dmdvbHJnYml4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NTE3MTksImV4cCI6MjA4MjQyNzcxOX0.8ynHDvE5APE_UC-RCItdSus86pjaijGlbvuVYh0QKpU';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
         const towers = [
-            { name: "Ranger", range: "Medium", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/61/RangerNew.png", desc: "Starter Tower, Shoots Basic Rifle", emojis: ["🔫", "🌲", "🎯", "🚶"] },
-            { name: "Shotgunner", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/5/56/ShotgunnerBase.png", desc: "Uses a shotgun", emojis: ["🐚", "🔥", "💨", "🛡️"] },
-            { name: "Operator", range: "Medium", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/66/Operator_0.png", desc: "Has a fast gun and can spawn cars", emojis: ["🚗", "⚡", "🔫", "📞"] },
-            { name: "Mine Layer", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/a/a2/Mine_Layer_0.png", desc: "Puts mines on track every so often", emojis: ["💣", "🛣️", "👷", "💥"] },
-            { name: "Sniper", range: "Long", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/f/f7/Sniper_0.png", desc: "Long Ranger Sniper", emojis: ["🔭", "🏹", "🏔️", "🎯"] },
-            { name: "Cryo Blaster", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/7/79/Cryoblaster_0.png", desc: "An ice tower that freezes stuff", emojis: ["❄️", "🧊", "🔫", "🥶"] },
-            { name: "Missile Trooper", range: "Medium", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/b/bc/VSMissileTrooper.png", desc: "Shoots rockets", emojis: ["🚀", "💥", "🪖", "🧨"] },
-            { name: "Patrol Boat", range: "Short", rarity: "Beginner", type: "Water", loc: "Water", img: "https://static.wikia.nocookie.net/tdx/images/4/46/Patrol_Boat_0.png", desc: "A water unit that shoots (a boat)", emojis: ["🚤", "🌊", "🔫", "⚓"] },
-            { name: "Farm", range: "N/A", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/b/bb/Farm_0_IG.png", desc: "Generates money every wave", emojis: ["💰", "🌽", "🚜", "💸"] },
-            { name: "Barracks", range: "N/A", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/c/c1/Barracks_0.png", desc: "Spawns riflemen and flametrooper men", emojis: ["🏢", "🪖", "🔥", "⚔️"] },
-            { name: "Grenadier", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/6c/Grenadier_0.png", desc: "Throws grenades", emojis: ["💣", "🖐️", "💥", "🪖"] },
-            { name: "EDJ", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/e/ed/EDJ_0.png", desc: "Gives discount and firerate buffs to nearby towers", emojis: ["🎧", "🎵", "💰", "⚡"] },
-            { name: "John", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/1/16/John_0.png", desc: "The creator of TDX. But a tower. With a Glock 19", emojis: ["🧑", "🕶️", "🔫", "🛠️"] },
-            { name: "Laser Gunner", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/68/Laser_0.png", desc: "Shoots piercing lasers", emojis: ["🔦", "🌈", "⚡", "👽"] },
-            { name: "Toxicnator", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/5/51/Toxicnator_0.png", desc: "Poisons enemies", emojis: ["☣️", "🧪", "🤢", "💀"] },
-            { name: "Sentry", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/a/a1/SentryBase.png", desc: "Has an arc range, a worse version of machine gunner", emojis: ["🤖", "📡", "🔫", "🛡️"] },
-            { name: "Artillery", range: "Long", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/3/36/Artillery_0.png", desc: "Controllable mortar", emojis: ["🎯", "🐚", "💥", "📡"] },
-            { name: "Jet Trooper", range: "Short", rarity: "Intermediate", type: "Air", loc: "Air", img: "https://static.wikia.nocookie.net/tdx/images/4/45/JetTrooper0.png", desc: "Flying tower, shoots missiles in bursts", emojis: ["🚀", "☁️", "🪖", "🔥"] },
-            { name: "AA-Turret", range: "Long", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/d/dc/AATurret0.png", desc: "Can only shoot flying enemies; with missiles", emojis: ["🚫", "✈️", "🚀", "📡"] },
-            { name: "Armored Factory", range: "N/A", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/a/a5/Armored_Factory_0.png", desc: "Spawns armored tanks", emojis: ["🏭", "🚜", "🛡️", "🔥"] },
-            { name: "Juggernaut", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/f/f2/Jug_0.png", desc: "A minigun troop", emojis: ["🦾", "🔥", "🔫", "🛡️"] },
-            { name: "Ghost", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/0/04/GhostBase.png", desc: "A girl with an Uzi who can stealth herself", emojis: ["👻", "🏙️", "🔫", "👗"] },
-            { name: "Mobster", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/3/3d/MobsterBase.png", desc: "Spawns goons and makes money", emojis: ["🎩", "🕴️", "💰", "🔫"] },
-            { name: "Rail Gunner", range: "Long", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/4/42/Railgunner_0.png", desc: "A slow firing laser shooter", emojis: ["⚡", "🔦", "🧊", "🎯"] },
-            { name: "Machine Gunner", range: "Medium", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/f/fe/MachineGunner0.png", desc: "A gunner with an arc range", emojis: ["🔫", "⛓️", "🔥", "🛡️"] },
-            { name: "Medic", range: "Medium", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/4/44/MedicBase.png", desc: "A troop that can heal nearby towers", emojis: ["🏥", "💉", "❤️", "🩹"] },
-            { name: "Slammer", range: "Short", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/6f/SlammerBase.png", desc: "A melee tower with a hammer (female)", emojis: ["🔨", "💥", "👗", "🧱"] },
-            { name: "XWM Turret", range: "Long", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/a/ad/XWMBase.png", desc: "A turret that can rebuild after death", emojis: ["👩‍💻", "🤖", "🔧", "🔋"] },
-            { name: "Golden Ranger", range: "Medium", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/d/db/GoldenRangerBase.png", desc: "A better golden variant of Ranger", emojis: ["✨", "👑", "🔫", "💰"] },
-            { name: "Golden Mine Layer", range: "Short", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/2/29/GoldenMineLayerBase.png", desc: "Better golden variant of normal mine layer", emojis: ["✨", "👑", "💣", "💰"] },
-            { name: "Combat Drone", range: "N/A", rarity: "Late Game", type: "Air", loc: "Air", img: "https://static.wikia.nocookie.net/tdx/images/9/9e/CombatDrone0.png", desc: "A controllable shooter drone", emojis: ["🚁", "🕹️", "🔫", "🛰️"] },
-            { name: "Warship", range: "V. Long", rarity: "Late Game", type: "Water", loc: "Water", img: "https://static.wikia.nocookie.net/tdx/images/e/ee/Warship_0.png", desc: "A navy ship.", emojis: ["🚢", "🌊", "⚓", "🐚"] },
-            { name: "Helicopter", range: "V. Long", rarity: "Late Game", type: "Air", loc: "Air", img: "https://static.wikia.nocookie.net/tdx/images/7/7d/HelicopterBase.png", desc: "A flying high DPS heli", emojis: ["🚁", "🌪️", "🔥", "🔫"] },
-            { name: "Golden Juggernaut", range: "Medium", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/f/f0/GoldenJuggernautBase.png", desc: "A high DPS golden variant of Juggernaut", emojis: ["✨", "👑", "🦾", "🔥"] },
-            { name: "Golden Mobster", range: "Medium", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/d/dd/GoldenMobster0.png", desc: "Generates Money and spawns goons (better)", emojis: ["✨", "👑", "🕴️", "💰"] },
-            { name: "Shield Tower", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/a/a4/ShieldTower0.png", desc: "Protects towers", emojis: ["🛡️", "🔋", "💡", "🏗️"] },
-            { name: "Oil Derrick", range: "N/A", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/9/91/OilDerrick0.png", desc: "Generates money by pumping oil", emojis: ["🛢️", "💰", "⚙️", "🏗️"] },
-            { name: "Behemoth Factory", range: "N/A", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/2/20/BehemothFactory0.png", desc: "Spawns tanks", emojis: ["🏭", "🐘", "🚜", "🔥"] },
-            { name: "Commander", range: "Medium", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/a/a8/CommanderBase.png", desc: "Buffs damage and firerate of nearby towers", emojis: ["📣", "⭐", "⚡", "🪖"] },
-            { name: "War Machine Factory", range: "N/A", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/e/ea/WarMachineFactory0.png", desc: "Spawns high DPS walker mechs", emojis: ["🏭", "🤖", "⚔️", "🔥"] },
-            { name: "Refractor", range: "Long", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/c/ca/Refractor0.png", desc: "A high DPS tower that shoots laser ray", emojis: ["💎", "🔦", "⚡", "🔥"] },
-            { name: "Cryo Ranger", range: "Medium", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/8/81/Cryo_Ranger_0.png", desc: "Like Ranger, but shoots ice", emojis: ["❄️", "🔫", "🌲", "🥶"] },
-            { name: "Z.E.D.", range: "N/A", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/c/cd/ZedBase.png", desc: "Spawns a high-tech armed vehicle", emojis: ["🤖", "🚔", "🔫", "⚡"] },
-            { name: "Scarecrow", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/1/19/ScarecrowBase.png", desc: "Baits Boss attacks", emojis: ["🎃", "🌾", "🤡", "🛡️"] },
-            { name: "Flame Trooper", range: "Medium", rarity: "Intermediate", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/2/2d/FlameTrooperBase.png", desc: "Pyromancer, uses a flamethrower", emojis: ["🔥", "🧯", "🪖", "🌋"] },
-            { name: "Relic", range: "N/A", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/b/ba/RelicBase.png", desc: "Spawns Undead Creatures", emojis: ["🏺", "💀", "🪄", "🏜️"] },
-            { name: "Cryo Helicopter", range: "V. Long", rarity: "Intermediate", type: "Air", loc: "Air", img: "https://static.wikia.nocookie.net/tdx/images/0/00/CryoHelicopter0.png", desc: "Like Helicopter, but shoots ice ray", emojis: ["🚁", "❄️", "🧊", "☁️"] },
-            { name: "Ice Breaker", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/3/39/IceBreaker0.png", desc: "Freezes enemies with melee", emojis: ["⛏️", "❄️", "🧊", "🥋"] },
-            { name: "Troll Tower", range: "Short", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/b/b6/TrollTower0.png", desc: "Meme tower, Baits boss attacks", emojis: ["🤡", "🎭", "🛡️", "😂"] },
-            { name: "Goo Gunner", range: "Medium", rarity: "Beginner", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/6f/GooGunner0.png", desc: "Uses sticky goo to slow down enemies", emojis: ["🧪", "🔫", "🦠", "🐌"] },
-            { name: "Shock Trooper", range: "Long", rarity: "Late Game", type: "Ground", loc: "Ground", img: "https://static.wikia.nocookie.net/tdx/images/6/6d/ShockTrooper0.png", desc: "Shocks crowds of enemies", emojis: ["⚡", "☁️", "🪖", "💥"] }
+            { name: "Ranger", img: "https://static.wikia.nocookie.net/tdx/images/6/61/RangerNew.png", desc: "Starter Tower, Shoots Basic Rifle", emojis: ["🔫", "🌲", "🎯", "🚶"] },
+            { name: "Shotgunner", img: "https://static.wikia.nocookie.net/tdx/images/5/56/ShotgunnerBase.png", desc: "Uses a shotgun", emojis: ["🐚", "🔥", "💨", "🛡️"] },
+            { name: "Operator", img: "https://static.wikia.nocookie.net/tdx/images/6/66/Operator_0.png", desc: "Has a fast gun and can spawn cars", emojis: ["🚗", "⚡", "🔫", "📞"] },
+            { name: "Mine Layer", img: "https://static.wikia.nocookie.net/tdx/images/a/a2/Mine_Layer_0.png", desc: "Puts mines on track every so often", emojis: ["💣", "🛣️", "👷", "💥"] },
+            { name: "Sniper", img: "https://static.wikia.nocookie.net/tdx/images/f/f7/Sniper_0.png", desc: "Long Ranger Sniper", emojis: ["🔭", "🏹", "🏔️", "🎯"] },
+            { name: "Farm", img: "https://static.wikia.nocookie.net/tdx/images/b/bb/Farm_0_IG.png", desc: "Generates money every wave", emojis: ["💰", "🌽", "🚜", "💸"] },
+            { name: "Juggernaut", img: "https://static.wikia.nocookie.net/tdx/images/f/f2/Jug_0.png", desc: "A minigun troop", emojis: ["🦾", "🔥", "🔫", "🛡️"] }
         ];
 
         let currentMode = 'classic';
         let targetTower = null;
         let guesses = [];
         let winState = false;
-        let pixelScale = 2; 
-        let visibleEmojis = 1;
-        let dailyProgress = { classic: false, pixel: false, emoji: false, description: false };
-        let imgObj = new Image();
-
-        const bgMusic = new Audio('https://www.mboxdrive.com/TDX_Theme.mp3'); 
-        bgMusic.loop = true;
-        bgMusic.volume = 0.2;
-        const clickSound = new Audio('https://www.soundjay.com/buttons/button-16.mp3');
-        const winSound = new Audio('https://www.soundjay.com/human/applause-01.mp3');
-        
+        let streak = 0;
+        let currentUser = null;
+        let authMode = 'signin';
+        let musicOn = false;
         let audioStarted = false;
-        let isMuted = true;
 
-        function getSafeImageUrl(originalUrl) {
-            if (!originalUrl) return "https://img.icons8.com/color/96/question-mark.png";
-            if (originalUrl.includes('wikia.nocookie.net')) {
-                const cleanUrl = originalUrl.split('/revision')[0];
-                return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
-            }
-            return originalUrl;
-        }
+        const BANNED_WORDS = ["admin", "moderator", "staff"]; 
 
-        function startAudio() {
-            if (!audioStarted) {
-                audioStarted = true;
-                if (!isMuted) bgMusic.play().catch(() => {});
-            }
-        }
+        function toggleUpdateLog() { document.getElementById('updateModal').classList.toggle('hidden'); }
+        function startAudio() { if (!audioStarted) audioStarted = true; }
+        function toggleMusic() { musicOn = !musicOn; document.getElementById('musicIcon').innerText = musicOn ? '🔊' : '🔇'; }
 
-        function toggleMusic() {
-            const icon = document.getElementById('musicIcon');
-            isMuted = !isMuted;
-            if (isMuted) {
-                bgMusic.pause();
-                icon.innerText = "🔇";
+        function toggleAuthUI() {
+            authMode = authMode === 'signin' ? 'signup' : 'signin';
+            const signupFields = document.getElementById('signupFields');
+            const mainBtn = document.getElementById('mainAuthBtn');
+            const toggleBtn = document.getElementById('toggleAuthMode');
+            const status = document.getElementById('authStatus');
+            status.innerText = "";
+            
+            if(authMode === 'signup') {
+                signupFields.classList.remove('hidden');
+                mainBtn.innerText = "Create Account";
+                toggleBtn.innerText = "Already have an account? Sign In";
             } else {
-                bgMusic.play().catch(() => {});
-                icon.innerText = "🔊";
-            }
-            playClick();
-        }
-
-        function playClick() {
-            if (clickSound) {
-                clickSound.currentTime = 0;
-                clickSound.play().catch(() => {});
+                signupFields.classList.add('hidden');
+                mainBtn.innerText = "Sign In";
+                toggleBtn.innerText = "Need an account? Sign Up";
             }
         }
 
-        function initGame() {
-            const saved = JSON.parse(localStorage.getItem('tdx_daily_v20'));
-            if(saved) dailyProgress = saved;
-            updateProgressBar();
-            
-            const input = document.getElementById('guessInput');
-            input.addEventListener('input', showSuggestions);
-            input.addEventListener('keypress', (e) => { 
-                if(e.key === 'Enter') handleGuess(input.value); 
-            });
-            
-            const hardToggle = document.getElementById('hardModeToggle');
-            if (hardToggle) {
-                hardToggle.addEventListener('change', () => {
-                    playClick();
-                    updateDisplay();
-                });
-            }
+        async function loginWithDiscord() {
+            const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'discord' });
+            if (error) document.getElementById('authStatus').innerText = "Discord Error: " + error.message;
+        }
 
-            changeMode('classic');
+        async function finalizeOauthName() {
+            const username = document.getElementById('newOauthUsername').value.trim();
+            const status = document.getElementById('authStatus');
+            if (username.length < 3) { status.innerText = "Username too short."; return; }
+            
+            const { error } = await supabaseClient.from('players').insert([{ 
+                id: currentUser.id, 
+                username: username, 
+                best_streak: streak,
+                pfp: currentUser.user_metadata.avatar_url || "https://img.icons8.com/color/96/user.png"
+            }]);
+
+            if (error) status.innerText = "Error: Name might be taken.";
+            else { status.innerText = "Profile created!"; checkUser(); }
+        }
+
+        async function handleAuth() {
+            const usernameInput = document.getElementById('authUsername').value.trim();
+            const passInput = document.getElementById('authPass').value;
+            const status = document.getElementById('authStatus');
+            
+            if (!usernameInput || usernameInput.length < 3) { status.innerText = "Username too short."; return; }
+            if (BANNED_WORDS.some(word => usernameInput.toLowerCase().includes(word))) { status.innerText = "Invalid username."; return; }
+            if (passInput.length < 6) { status.innerText = "Password too short."; return; }
+
+            const shadowEmail = `${usernameInput.toLowerCase()}@tdxguessr.com`;
+            status.innerText = "Processing...";
+            
+            try {
+                if(authMode === 'signup') {
+                    const pfpUrl = document.getElementById('authPfp').value;
+                    const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: shadowEmail, password: passInput });
+                    if(authError) throw authError;
+
+                    if(authData.user) {
+                        await supabaseClient.from('players').insert([{ 
+                            id: authData.user.id, 
+                            username: usernameInput, 
+                            best_streak: streak,
+                            pfp: (pfpUrl && pfpUrl.trim() !== "") ? pfpUrl : "https://img.icons8.com/color/96/user.png"
+                        }]);
+                        status.innerText = "Success! Signing in...";
+                        setTimeout(() => { closeAuth(); checkUser(); }, 1000);
+                    }
+                } else {
+                    const { error } = await supabaseClient.auth.signInWithPassword({ email: shadowEmail, password: passInput });
+                    if(error) throw error;
+                    status.innerText = "Welcome back!";
+                    setTimeout(() => { closeAuth(); checkUser(); }, 500);
+                }
+            } catch (e) { status.innerText = "Error: " + e.message; }
+        }
+
+        async function updatePfp() {
+            if(!currentUser) return;
+            const newUrl = document.getElementById('updatePfpUrl').value;
+            if(!newUrl) return;
+            const { error } = await supabaseClient.from('players').update({ pfp: newUrl }).eq('id', currentUser.id);
+            if(!error) await checkUser();
+        }
+
+        async function checkUser() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            currentUser = session?.user || null;
+            
+            const authForm = document.getElementById('authForm');
+            const userInfo = document.getElementById('userInfoSection');
+            const setUsernameForm = document.getElementById('setUsernameSection');
+            const display = document.getElementById('profileUserDisplay');
+            const pfpImg = document.getElementById('profilePfp');
+
+            if(currentUser) {
+                const { data } = await supabaseClient.from('players').select('*').eq('id', currentUser.id).maybeSingle();
+                if(data) {
+                    authForm.classList.add('hidden');
+                    setUsernameForm.classList.add('hidden');
+                    userInfo.classList.remove('hidden');
+                    display.innerText = data.username;
+                    pfpImg.src = data.pfp || "https://img.icons8.com/color/96/user.png";
+                    streak = Math.max(streak, data.best_streak || 0);
+                    updateStreakUI();
+                    // Auto close after verification
+                    if (!document.getElementById('authModal').classList.contains('hidden')) {
+                         setTimeout(closeAuth, 1000);
+                    }
+                } else {
+                    authForm.classList.add('hidden');
+                    setUsernameForm.classList.remove('hidden');
+                    userInfo.classList.add('hidden');
+                }
+            } else {
+                authForm.classList.remove('hidden');
+                setUsernameForm.classList.add('hidden');
+                userInfo.classList.add('hidden');
+            }
+        }
+
+        async function fetchLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            const { data, error } = await supabaseClient.from('players').select('*').order('best_streak', { ascending: false }).limit(10);
+            if(error) { list.innerHTML = `<p class='text-red-500'>Error loading stats.</p>`; return; }
+            list.innerHTML = data.map((player, i) => `
+                <div class="flex justify-between items-center bg-white/5 p-2 rounded">
+                    <div class="flex items-center gap-2">
+                        <span class="text-yellow-500 font-black">#${i+1}</span>
+                        <img src="${player.pfp || 'https://img.icons8.com/color/96/user.png'}" class="w-6 h-6 rounded-full border border-white/10">
+                        <span class="text-[9px] font-bold">${player.username}</span>
+                    </div>
+                    <span class="text-green-500 font-black">${player.best_streak} 🔥</span>
+                </div>
+            `).join('');
         }
 
         function changeMode(mode) {
-            playClick();
             currentMode = mode;
             document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            const modeBtn = document.getElementById('mode-' + mode);
-            if (modeBtn) modeBtn.classList.add('active');
-            
-            ['pixelDisplay', 'emojiDisplay', 'descriptionDisplay', 'classicDisplay'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('hidden');
-            });
-            const activeDisplay = document.getElementById(mode + 'Display');
-            if (activeDisplay) activeDisplay.classList.remove('hidden');
-
+            document.getElementById('mode-' + mode).classList.add('active');
+            ['pixelDisplay', 'emojiDisplay', 'descriptionDisplay', 'classicDisplay'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(mode + 'Display').classList.remove('hidden');
             resetGame();
         }
+
+        function refreshTower() { resetGame(); }
 
         function resetGame() {
             guesses = [];
             winState = false;
-            pixelScale = 2; 
-            visibleEmojis = 1;
             targetTower = towers[Math.floor(Math.random() * towers.length)];
-            
             document.getElementById('winControls').classList.add('hidden');
             document.getElementById('interactionSection').classList.remove('hidden');
             document.getElementById('guessInput').disabled = false;
             document.getElementById('guessInput').value = '';
             document.getElementById('guessHistory').innerHTML = '';
-            
-            if (currentMode === 'classic') {
-                const template = document.getElementById('headerTemplate');
-                document.getElementById('guessHistory').appendChild(template.content.cloneNode(true));
-            }
-            
-            if(currentMode === 'pixel') {
-                imgObj = new Image();
-                imgObj.crossOrigin = "anonymous";
-                imgObj.src = getSafeImageUrl(targetTower.img);
-                imgObj.onload = () => updateDisplay();
-                imgObj.onerror = () => {
-                    imgObj.src = "https://img.icons8.com/color/96/question-mark.png";
-                };
-            } else {
-                updateDisplay();
-            }
+            updateDisplay();
         }
 
         function updateDisplay() {
-            if(currentMode === 'pixel' && imgObj.complete) {
-                const canvas = document.getElementById('pixelCanvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Use a larger canvas size to avoid the "single pixel" center crop
-                // Dim is the size of the pixel grid (e.g., 2x2, 4x4, etc)
-                const dim = winState ? 120 : pixelScale;
-                
-                // Create an offscreen buffer to draw the low-res version
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = dim;
-                tempCanvas.height = dim;
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                const hardToggle = document.getElementById('hardModeToggle');
-                if(hardToggle && hardToggle.checked && !winState) {
-                    tempCtx.filter = 'grayscale(100%) contrast(150%) brightness(80%)';
-                }
-
-                // Draw image onto the small canvas, covering the whole area
-                tempCtx.drawImage(imgObj, 0, 0, dim, dim);
-                
-                // Upscale back to the main canvas
-                ctx.imageSmoothingEnabled = false;
-                ctx.clearRect(0, 0, 120, 120);
-                ctx.drawImage(tempCanvas, 0, 0, dim, dim, 0, 0, 120, 120);
-            } else if(currentMode === 'emoji') {
-                document.getElementById('emojiSlots').innerHTML = targetTower.emojis.map((e, i) => 
-                    i < visibleEmojis ? `<span class="animate-reveal">${e}</span>` : `<span class="opacity-10 grayscale">?</span>`
-                ).join('');
+            if(currentMode === 'emoji') {
+                document.getElementById('emojiSlots').innerHTML = targetTower.emojis.map((e, i) => i < 1 ? `<span class="animate-reveal">${e}</span>` : `<span class="opacity-10">?</span>`).join('');
             } else if(currentMode === 'description') {
                 const words = targetTower.desc.split(' ');
-                const revealCount = winState ? words.length : Math.max(1, guesses.length);
-                document.getElementById('descText').innerHTML = words.map((w, i) => {
-                    if (i < revealCount) return w;
-                    return '_'.repeat(w.length);
-                }).join(' ');
+                document.getElementById('descText').innerHTML = words.map((w, i) => i < 1 ? w : '_'.repeat(w.length)).join(' ');
+            } else if(currentMode === 'pixel') {
+                drawPixelated();
             }
         }
 
-        function handleGuess(guessName) {
+        function drawPixelated() {
+            const canvas = document.getElementById('pixelCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.src = targetTower.img;
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, 16, 16);
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(canvas, 0, 0, 16, 16, 0, 0, canvas.width, canvas.height);
+            };
+        }
+
+        function giveUp() {
             if(winState) return;
-            const guess = towers.find(t => t.name.toLowerCase() === guessName.trim().toLowerCase());
+            winState = true;
+            document.getElementById('winStatusText').innerText = "IT WAS: " + targetTower.name;
+            document.getElementById('winControls').classList.remove('hidden');
+            document.getElementById('interactionSection').classList.add('hidden');
+            streak = 0;
+            updateStreakUI();
+        }
+
+        function handleGuess(name) {
+            if(winState) return;
+            const guess = towers.find(t => t.name.toLowerCase() === name.trim().toLowerCase());
             if(!guess) return;
-
-            playClick();
-            guesses.push(guess);
-            document.getElementById('guessInput').value = '';
             document.getElementById('suggestions').classList.add('hidden');
-
+            document.getElementById('guessInput').value = '';
+            guesses.push(guess);
             if(guess.name === targetTower.name) {
-                winGame();
-            } else {
-                // Double resolution with each wrong guess
-                pixelScale = Math.min(120, pixelScale * 2); 
-                visibleEmojis = Math.min(4, visibleEmojis + 1);
+                winState = true;
+                streak++;
+                document.getElementById('winStatusText').innerText = "CORRECT!";
+                document.getElementById('winControls').classList.remove('hidden');
+                document.getElementById('interactionSection').classList.add('hidden');
+                updateStreakUI();
+                if(currentUser) saveStreak();
             }
-
             addGuessRow(guess);
-            updateDisplay();
+        }
+
+        async function saveStreak() {
+            const { data } = await supabaseClient.from('players').select('best_streak').eq('id', currentUser.id).maybeSingle();
+            if(data && streak > data.best_streak) {
+                await supabaseClient.from('players').update({ best_streak: streak }).eq('id', currentUser.id);
+            }
         }
 
         function addGuessRow(guess) {
             const container = document.getElementById('guessHistory');
             const row = document.createElement('div');
-            
-            if(currentMode === 'classic') {
-                row.className = "grid grid-cols-5 gap-0.5 animate-reveal";
-                row.innerHTML = `
-                    <div class="stat-square border border-white/10 bg-black/40 overflow-hidden text-[5px] font-bold uppercase">${guess.name}</div>
-                    <div class="stat-square ${guess.range === targetTower.range ? 'correct' : 'incorrect'}">${guess.range}</div>
-                    <div class="stat-square ${guess.rarity === targetTower.rarity ? 'correct' : 'incorrect'}">${guess.rarity}</div>
-                    <div class="stat-square ${guess.type === targetTower.type ? 'correct' : 'incorrect'}">${guess.type}</div>
-                    <div class="stat-square ${guess.loc === targetTower.loc ? 'correct' : 'incorrect'}">${guess.loc}</div>
-                `;
-                const header = document.getElementById('classicHeader');
-                if (header) container.insertBefore(row, header.nextSibling);
-                else container.appendChild(row);
-            } else {
-                const isCorrect = guess.name === targetTower.name;
-                row.className = `flex items-center gap-2 glass-box !p-1.5 ${isCorrect ? 'correct' : 'incorrect'} border-2 animate-reveal`;
-                row.innerHTML = `<img src="${getSafeImageUrl(guess.img)}" class="w-8 h-8 rounded shadow border border-white/10" onerror="this.src='https://img.icons8.com/color/48/question-mark.png'"> <span class="text-[10px] font-black uppercase tracking-wide">${guess.name}</span>`;
-                container.prepend(row);
-            }
-        }
-
-        function winGame() {
-            winState = true;
-            if (winSound) winSound.play().catch(() => {});
-            document.getElementById('guessInput').disabled = true;
-            document.getElementById('interactionSection').classList.add('hidden');
-            document.getElementById('winControls').classList.remove('hidden');
-            
-            dailyProgress[currentMode] = true;
-            localStorage.setItem('tdx_daily_v20', JSON.stringify(dailyProgress));
-            updateProgressBar();
-            updateDisplay();
-        }
-
-        function shareResults() {
-            const text = `TDX Guessr: ${guesses.length} attempts! ✅\nMode: ${currentMode.toUpperCase()}`;
-            navigator.clipboard.writeText(text).then(() => {
-                const toast = document.createElement('div');
-                toast.className = 'share-toast';
-                toast.innerText = 'Copied to clipboard!';
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 2000);
-            });
-        }
-
-        function updateProgressBar() {
-            const won = Object.values(dailyProgress).filter(v => v).length;
-            const percent = (won / 4) * 100;
-            const bar = document.getElementById('progressBar');
-            const label = document.getElementById('progressPercent');
-            if (bar) bar.style.width = percent + '%';
-            if (label) label.innerText = Math.round(percent) + '%';
+            const isCorrect = guess.name === targetTower.name;
+            row.className = `flex items-center gap-2 glass-box !p-1.5 ${isCorrect ? 'correct' : 'incorrect'} border-2`;
+            row.innerHTML = `<img src="${guess.img}" class="w-8 h-8 rounded"> <span class="text-[10px] font-black uppercase">${guess.name}</span>`;
+            container.prepend(row);
         }
 
         function showSuggestions(e) {
@@ -590,16 +620,28 @@
             if(!val) { suggCont.classList.add('hidden'); return; }
             const matches = towers.filter(t => t.name.toLowerCase().includes(val));
             if(matches.length > 0) {
-                suggCont.innerHTML = matches.map(m => `
-                    <div class="suggestion-item p-1.5 cursor-pointer flex items-center gap-2" onclick="handleGuess('${m.name}')">
-                        <img src="${getSafeImageUrl(m.img)}" class="w-5 h-5 rounded" onerror="this.src='https://img.icons8.com/color/48/question-mark.png'">
-                        <span class="text-[8px] font-bold uppercase">${m.name}</span>
-                    </div>`).join('');
+                suggCont.innerHTML = matches.map(m => `<div class="p-1.5 cursor-pointer flex items-center gap-2" onclick="handleGuess('${m.name}')">
+                    <img src="${m.img}" class="w-5 h-5 rounded"><span class="text-[8px] font-bold uppercase">${m.name}</span></div>`).join('');
                 suggCont.classList.remove('hidden');
             } else suggCont.classList.add('hidden');
         }
 
-        window.onload = initGame;
+        function openAuth() { document.getElementById('authModal').classList.remove('hidden'); checkUser(); }
+        function closeAuth() { document.getElementById('authModal').classList.add('hidden'); }
+        function toggleLeaderboard() { 
+            const lb = document.getElementById('leaderboardModal');
+            lb.classList.toggle('hidden');
+            if(!lb.classList.contains('hidden')) fetchLeaderboard();
+        }
+        function updateStreakUI() { document.getElementById('streakCount').innerText = streak; }
+        async function handleSignOut() { await supabaseClient.auth.signOut(); currentUser = null; location.reload(); }
+
+        window.onload = () => {
+            checkUser();
+            resetGame();
+            document.getElementById('guessInput').addEventListener('input', showSuggestions);
+            document.getElementById('guessInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') handleGuess(e.target.value); });
+        };
     </script>
 </body>
 </html>
